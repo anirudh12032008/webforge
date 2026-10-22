@@ -1,6 +1,5 @@
 import { customType } from "drizzle-orm/pg-core";
-
-export type LngLat = { lng: number; lat: number };
+import type { LngLat } from "@/types";
 
 const SRID_FLAG = 0x20000000;
 
