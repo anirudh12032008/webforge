@@ -4,7 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { AuditTimeline } from "@/components/admin/audit-timeline";
+import { ExplainPriority } from "@/components/admin/explain-priority";
+import { MergeControls } from "@/components/admin/merge-controls";
 import { OverrideControls } from "@/components/admin/override-controls";
+import { StreetView } from "@/components/admin/street-view";
 import { PriorityBar } from "@/components/shared/priority-bar";
 import { getComplaintDetail, type LinkedReport } from "@/db/complaint-detail";
 import { CATEGORY_LABELS, STATUS_LABELS, priorityBand, waitingFor } from "@/lib/labels";
@@ -51,12 +54,12 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
         <ArrowLeft className="size-4" aria-hidden /> Back to triage
       </Link>
 
-      <header className="flex flex-wrap items-start gap-4">
+      <header className="flex flex-wrap items-start gap-4 border-b-2 border-foreground pb-5">
         <span className={`rounded-lg px-3 py-2 text-2xl font-semibold tabular-nums ${band.className}`} title={`${band.label} priority`}>
           {Math.round(c.priorityScore)}
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold">{c.title}</h1>
+          <h1 className="text-2xl font-semibold sm:text-3xl">{c.title}</h1>
           <p className="mt-1 text-muted-foreground">
             {c.locationLabel ?? `${c.location.lat.toFixed(5)}, ${c.location.lng.toFixed(5)}`}
           </p>
@@ -75,6 +78,7 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
               <img src={c.photoUrl} alt={`Photo of ${c.title}`} className="max-h-96 w-full rounded-lg border object-cover" />
             )}
             <p className="whitespace-pre-line">{c.description}</p>
+            <StreetView location={c.location} />
           </Section>
 
           <Section title="AI assessment">
@@ -100,6 +104,7 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
                 <PriorityBar breakdown={c.priorityBreakdown} />
               </div>
             )}
+            <ExplainPriority complaintId={c.id} />
           </Section>
 
           <Section title={`Duplicate reports (${duplicates.length})`}>
@@ -113,6 +118,7 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
         <aside className="space-y-6">
           <Section title="Actions">
             <OverrideControls complaintId={c.id} status={c.status} category={c.category} departmentId={c.departmentId} departments={orgDepartments} />
+            <MergeControls complaintId={c.id} duplicateOf={c.duplicateOf} related={related} />
           </Section>
           <Section title="Activity">
             <AuditTimeline entries={audit} departments={orgDepartments} />

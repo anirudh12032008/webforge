@@ -10,7 +10,7 @@ const FACTOR_COLORS: Record<PriorityFactor["factor"], string> = {
 };
 
 /** Stacked 0–100 bar: each segment is one factor's contribution, so the score explains itself. */
-export function PriorityBar({ breakdown }: { breakdown: PriorityFactor[] }) {
+export function PriorityBar({ breakdown, labels = FACTOR_LABELS }: { breakdown: PriorityFactor[]; labels?: Record<PriorityFactor["factor"], string> }) {
   return (
     <div className="space-y-3">
       <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label="Priority breakdown">
@@ -22,7 +22,7 @@ export function PriorityBar({ breakdown }: { breakdown: PriorityFactor[] }) {
         {breakdown.map((f) => (
           <div key={f.factor} className="flex items-center gap-2">
             <span className={`size-2.5 shrink-0 rounded-full ${FACTOR_COLORS[f.factor]}`} aria-hidden />
-            <dt className="text-muted-foreground">{FACTOR_LABELS[f.factor]}</dt>
+            <dt className="text-muted-foreground">{labels[f.factor]}</dt>
             <dd className="ml-auto font-medium tabular-nums">+{f.contribution}</dd>
           </div>
         ))}
