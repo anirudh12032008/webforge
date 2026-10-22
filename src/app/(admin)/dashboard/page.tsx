@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { OrgTabs } from "@/components/admin/org-tabs";
 import { PriorityMap } from "@/components/admin/priority-map";
 import { TriageTable } from "@/components/admin/triage-table";
 import { getDashboardStats, listComplaints, listMapPoints, SLA_HOURS } from "@/db/dashboard";
@@ -7,12 +7,6 @@ import { listComplaintsQuerySchema } from "@/lib/validation";
 
 export const metadata: Metadata = { title: "Triage dashboard — CampusSense" };
 export const dynamic = "force-dynamic";
-
-const ORG_TABS = [
-  { slug: undefined, label: "All" },
-  { slug: "manit", label: "MANIT campus" },
-  { slug: "bmc", label: "Bhopal city" },
-];
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -33,18 +27,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-2xl font-semibold sm:text-3xl">Triage</h1>
-        <nav className="flex gap-1 rounded-lg bg-muted p-1 text-sm" aria-label="Organisation">
-          {ORG_TABS.map((tab) => (
-            <Link
-              key={tab.label}
-              href={tab.slug ? `/dashboard?org=${tab.slug}` : "/dashboard"}
-              aria-current={query.org === tab.slug ? "page" : undefined}
-              className="rounded-md px-3 py-1.5 text-muted-foreground aria-[current=page]:bg-background aria-[current=page]:font-medium aria-[current=page]:text-foreground aria-[current=page]:shadow-sm"
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
+        <OrgTabs basePath="/dashboard" current={query.org} />
       </header>
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
