@@ -14,7 +14,7 @@ export async function TopNav() {
       <nav className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-sm">
         <Link href="/" className="flex items-center gap-1.5 font-semibold">
           <MapPin className="size-4" aria-hidden />
-          CampusSense
+          CivicLens
         </Link>
         <div className="order-last flex w-full flex-wrap items-center gap-x-4 gap-y-1 sm:order-none sm:ml-auto sm:w-auto">
           <Link href="/report" className={linkClass}>{t.report}</Link>

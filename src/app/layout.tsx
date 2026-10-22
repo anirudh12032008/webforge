@@ -11,7 +11,7 @@ const publicSans = Public_Sans({ variable: "--font-public-sans", subsets: ["lati
 const archivo = Archivo({ variable: "--font-archivo", subsets: ["latin"], axes: ["wdth"] });
 
 export const metadata: Metadata = {
-  title: "CampusSense — MANIT",
+  title: "CivicLens — Bhopal & MANIT",
   description: "Report civic issues in Bhopal and on the MANIT campus. AI sorts, de-duplicates and ranks them for the right team.",
 };
 

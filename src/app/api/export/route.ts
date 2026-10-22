@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="campussense-complaints-${date}.csv"`,
+      "Content-Disposition": `attachment; filename="civiclens-complaints-${date}.csv"`,
     },
   });
 }

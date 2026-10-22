@@ -90,7 +90,7 @@ async function imageSource(url: string): Promise<Anthropic.ImageBlockParam["sour
   if (own) return inline(own.bytes, own.contentType);
   if (!url.startsWith("https://")) return null;
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "CampusSense/1.0 (civic issue triage)" } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "CivicLens/1.0 (civic issue triage)" } });
     const type = res.headers.get("content-type")?.split(";")[0] ?? "";
     const bytes = res.ok ? await res.arrayBuffer() : null;
     const source = bytes && inline(bytes, type);

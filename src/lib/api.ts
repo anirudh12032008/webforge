@@ -27,7 +27,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export type SubmitResponse = { complaint: Complaint; analysis: Analysis };
 
-/** Typed client for the CampusSense API, safe to use from client components. */
+/** Typed client for the CivicLens API, safe to use from client components. */
 export const api = {
   eligibleOrgs: (location: LngLat) =>
     request<{ orgs: Org[] }>(`/api/orgs?lat=${location.lat}&lng=${location.lng}`).then((r) => r.orgs),
