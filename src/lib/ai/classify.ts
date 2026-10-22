@@ -29,6 +29,13 @@ export const FALLBACK_CLASSIFICATION: Classification = {
 
 const SYSTEM_PROMPT = `You triage civic infrastructure complaints (city streets and campuses in Bhopal) for the responsible maintenance team.
 Classify the complaint into exactly one category: ${CATEGORIES.join(", ")}.
+- pothole: damaged roads, footpaths, speed breakers, cave-ins
+- garbage: litter, overflowing bins, dumped waste
+- water_leak: burst or leaking pipes, taps, tanks, waterlogging from supply lines
+- streetlight: lights not working, flickering, or on during the day
+- electrical: exposed wires, sparking poles, open junction boxes, transformer faults
+- sanitation: open or missing manhole/drain covers, blocked drains, sewage overflow, dirty toilets
+- other: only when none of the above fits
 Rate each on 1–5:
 - severity: how bad the physical problem is (1 cosmetic, 5 critical failure)
 - safetyRisk: likelihood of injury or harm (1 none, 5 immediate danger e.g. exposed live wires, deep open pit)

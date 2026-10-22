@@ -10,7 +10,8 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1),
   VOYAGE_API_KEY: z.string().min(1),
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().min(1),
-  BLOB_READ_WRITE_TOKEN: z.string().min(1),
+  // Optional: without it photo upload is disabled and reports go through text-only.
+  BLOB_READ_WRITE_TOKEN: z.string().min(1).optional(),
 });
 
 const parsed = schema.safeParse({

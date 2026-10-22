@@ -78,10 +78,7 @@ export function AnalysisCard({ complaint, analysis }: { complaint: Complaint; an
           ) : (
             <Building2 className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
           )}
-          <span>
-            {analysis.department ? <strong className="font-medium">{analysis.department.name}. </strong> : null}
-            {analysis.routingReason}
-          </span>
+          <span>{analysis.routingReason}</span>
         </li>
       </ul>
     </article>

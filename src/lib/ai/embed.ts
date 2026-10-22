@@ -14,13 +14,21 @@ const responseSchema = z.object({
  * so the pipeline simply skips dedup rather than failing the complaint.
  */
 export async function embedText(text: string): Promise<number[] | null> {
-  try {
-    const res = await fetch("https://api.voyageai.com/v1/embeddings", {
+  const request = () =>
+    fetch("https://api.voyageai.com/v1/embeddings", {
       method: "POST",
       headers: { Authorization: `Bearer ${env.VOYAGE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ input: [text], model: EMBEDDING_MODEL, input_type: "document" }),
       signal: AbortSignal.timeout(10_000),
     });
+  try {
+    let res = await request();
+    if (res.status === 429) {
+      // Rate limited (free tier is 3 req/min): honour Retry-After up to 5 s, then try once more.
+      const waitS = Math.min(5, Number(res.headers.get("retry-after")) || 2);
+      await new Promise((r) => setTimeout(r, waitS * 1000));
+      res = await request();
+    }
     if (!res.ok) throw new Error(`Voyage ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const embedding = responseSchema.parse(await res.json()).data[0].embedding;
     if (embedding.length !== EMBEDDING_DIMS) throw new Error(`expected ${EMBEDDING_DIMS} dims, got ${embedding.length}`);

@@ -9,6 +9,7 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 /** Stores one complaint photo in Vercel Blob and returns its public URL. */
 export async function POST(request: Request) {
+  if (!env.BLOB_READ_WRITE_TOKEN) return errorResponse("Photo uploads aren't set up yet.", 503);
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return errorResponse("Attach a photo in the 'file' field.", 400);
