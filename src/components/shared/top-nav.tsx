@@ -5,18 +5,19 @@ import { pick } from "@/lib/i18n";
 import { NAV } from "@/lib/i18n/messages/nav";
 import { getLocale } from "@/lib/i18n/server";
 
-const linkClass = "whitespace-nowrap text-muted-foreground hover:text-foreground";
+/** min-h-10: 40px tap target without adding any visible chrome. */
+const linkClass = "inline-flex min-h-10 items-center whitespace-nowrap text-muted-foreground hover:text-foreground";
 
 export async function TopNav() {
   const t = pick(NAV, await getLocale());
   return (
     <header className="border-b bg-background">
-      <nav className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-sm">
-        <Link href="/" className="flex items-center gap-1.5 font-semibold">
+      <nav className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-4 gap-y-0 px-4 py-2 text-sm">
+        <Link href="/" className="flex min-h-10 items-center gap-1.5 font-semibold">
           <MapPin className="size-4" aria-hidden />
           CivicLens
         </Link>
-        <div className="order-last flex w-full flex-wrap items-center gap-x-4 gap-y-1 sm:order-none sm:ml-auto sm:w-auto">
+        <div className="order-last flex w-full flex-wrap items-center gap-x-4 gap-y-0 sm:order-none sm:ml-auto sm:w-auto">
           <Link href="/report" className={linkClass}>{t.report}</Link>
           <Link href="/my-reports" className={linkClass}>{t.myReports}</Link>
           <span className="text-muted-foreground/50" aria-hidden>|</span>

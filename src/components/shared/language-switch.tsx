@@ -22,7 +22,7 @@ export function LanguageSwitch({ label }: { label: string }) {
           aria-pressed={locale === o.locale}
           aria-label={o.name}
           onClick={() => locale !== o.locale && setLocale(o.locale)}
-          className="rounded px-2 py-1 font-medium text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-foreground aria-pressed:text-background"
+          className="relative inline-flex h-7 min-w-9 items-center justify-center rounded px-2 font-medium text-muted-foreground transition-colors after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] hover:text-foreground aria-pressed:bg-foreground aria-pressed:text-background"
         >
           {o.label}
         </button>
