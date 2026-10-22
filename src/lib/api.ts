@@ -1,4 +1,4 @@
-import type { CreateComplaintInput } from "@/lib/validation";
+import type { CreateComplaintInput, PatchComplaintInput } from "@/lib/validation";
 import type { Analysis, Complaint, LngLat, Org } from "@/types";
 
 /** A failed API call, carrying the server's message and any per-field validation errors. */
@@ -37,6 +37,13 @@ export const api = {
     form.append("file", photo, filename);
     return request<{ url: string }>("/api/upload", { method: "POST", body: form }).then((r) => r.url);
   },
+
+  updateComplaint: (id: string, patch: PatchComplaintInput, actor = "admin") =>
+    request<{ complaint: Complaint }>(`/api/complaints/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-actor": actor },
+      body: JSON.stringify(patch),
+    }).then((r) => r.complaint),
 
   submitComplaint: (input: CreateComplaintInput) =>
     request<SubmitResponse>("/api/complaints", {
