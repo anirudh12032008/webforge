@@ -1,7 +1,7 @@
 "use client";
 
 import { AdvancedMarker, APIProvider, Map, useMap, useMapsLibrary, type MapMouseEvent } from "@vis.gl/react-google-maps";
-import { LocateFixed } from "lucide-react";
+import { LocateFixed, MapPin } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLocale } from "@/components/shared/locale-provider";
@@ -44,18 +44,19 @@ function LocateButton({ onLocated }: { onLocated: (location: LngLat) => void }) 
     }
   };
   return (
-    <Button type="button" variant="outline" onClick={locate} disabled={locating}>
-      <LocateFixed aria-hidden />
+    <Button type="button" variant="outline" size="lg" className="h-11 w-full px-4 sm:w-auto" onClick={locate} disabled={locating}>
+      <LocateFixed className={locating ? "animate-pulse" : undefined} aria-hidden />
       {locating ? t.finding : t.useMyLocation}
     </Button>
   );
 }
 
 function PickerMap({ value, onPick, onAddress }: Props) {
+  const t = pick(REPORT, useLocale());
   const map = useMap();
   const geocoding = useMapsLibrary("geocoding");
 
-  const pick = async (location: LngLat) => {
+  const pin = async (location: LngLat) => {
     onPick(location);
     onAddress(null);
     if (!geocoding) return;
@@ -68,17 +69,24 @@ function PickerMap({ value, onPick, onAddress }: Props) {
   };
 
   const onMapClick = (e: MapMouseEvent) => {
-    if (e.detail.latLng) void pick(e.detail.latLng);
+    if (e.detail.latLng) void pin(e.detail.latLng);
   };
 
   return (
     <div className="space-y-3">
-      <div className="h-72 overflow-hidden rounded-lg border sm:h-96">
+      {/* Cooperative gestures: one finger scrolls the page on phones instead of trapping it in the map; taps still pin. */}
+      <div className="relative h-[min(60svh,22rem)] overflow-hidden rounded-lg border sm:h-96">
+        {!value && (
+          <p className="pointer-events-none absolute inset-x-3 top-3 z-10 mx-auto flex w-fit max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-full bg-foreground/90 px-3 py-1.5 text-sm text-background shadow-sm">
+            <MapPin className="size-4 shrink-0 text-signal" aria-hidden />
+            {t.pinFirst}
+          </p>
+        )}
         <Map
           mapId="DEMO_MAP_ID"
           defaultCenter={DEFAULT_CENTER}
           defaultZoom={15}
-          gestureHandling="greedy"
+          gestureHandling="cooperative"
           disableDefaultUI
           zoomControl
           clickableIcons={false}
@@ -91,7 +99,7 @@ function PickerMap({ value, onPick, onAddress }: Props) {
         onLocated={(location) => {
           map?.panTo(location);
           map?.setZoom(17);
-          void pick(location);
+          void pin(location);
         }}
       />
     </div>

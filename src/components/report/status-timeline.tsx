@@ -24,18 +24,19 @@ export function StatusTimeline({ status, history, locale, t }: Props) {
   const reachedAt = new Map(history.map((h) => [h.status, h.at]));
 
   return (
-    <ol className="grid grid-cols-5 gap-1" aria-label={t.progress}>
+    <ol className="grid gap-2 sm:grid-cols-5 sm:gap-1" aria-label={t.progress}>
       {STEPS.map((step, i) => {
         const done = current >= 0 && i <= current;
         const at = reachedAt.get(step);
         return (
-          <li key={step} className="space-y-1.5" aria-current={i === current ? "step" : undefined}>
-            <span className={`flex h-1.5 rounded-full ${done ? "bg-primary" : "bg-muted"}`} aria-hidden />
-            <span className={`flex items-center gap-1 text-xs ${done ? "font-medium text-foreground" : "text-muted-foreground"}`}>
-              {done && <Check className="size-3 shrink-0" aria-hidden />}
+          // Vertical list on phones (five columns don't fit labels plus times at 375px), a bar across from sm up.
+          <li key={step} className="flex items-center gap-3 sm:block sm:space-y-1.5" aria-current={i === current ? "step" : undefined}>
+            <span className={`block h-6 w-1.5 shrink-0 rounded-full sm:h-1.5 sm:w-full ${done ? "bg-primary" : "bg-muted"} ${i === current ? "ring-2 ring-primary/25" : ""}`} aria-hidden />
+            <span className={`flex items-center gap-1 text-sm sm:text-xs ${done ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+              {done && <Check className="size-3.5 shrink-0 sm:size-3" aria-hidden />}
               {stepLabels[step]}
             </span>
-            {done && at && <span className="block text-xs text-muted-foreground">{when(at, locale)}</span>}
+            {done && at && <span className="ml-auto text-xs text-muted-foreground tabular-nums sm:ml-0 sm:block">{when(at, locale)}</span>}
           </li>
         );
       })}

@@ -83,7 +83,8 @@ export function VoiceInputButton({ lang, onFinal, labels }: Props) {
       {interim && <span className="truncate text-xs text-muted-foreground italic" aria-live="polite">{interim}</span>}
       <Button
         type="button"
-        size="sm"
+        size="lg"
+        className="h-11 shrink-0 px-3"
         variant={listening ? "destructive" : "outline"}
         aria-pressed={listening}
         aria-label={listening ? labels.stop : labels.start}
@@ -97,7 +98,7 @@ export function VoiceInputButton({ lang, onFinal, labels }: Props) {
         ) : (
           <Mic aria-hidden />
         )}
-        <span className="hidden sm:inline">{listening ? labels.stop : labels.start}</span>
+        <span className="max-w-40 truncate sm:max-w-none">{listening ? labels.stop : labels.start}</span>
       </Button>
     </div>
   );

@@ -8,6 +8,7 @@ import { getDashboardStats, listComplaints } from "@/db/dashboard";
 import { getComplaint } from "@/db/queries";
 import { pick } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/server";
+import { cn } from "@/lib/utils";
 import { listComplaintsQuerySchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -70,15 +71,15 @@ export default async function Home() {
 
   return (
     <>
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-12 pb-16 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-14 sm:gap-12 sm:pt-20 sm:pb-16 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
         <div>
-          <h1 className="text-4xl leading-[1.05] font-semibold text-balance sm:text-5xl lg:text-6xl">{t.heroTitle}</h1>
-          <p className="mt-6 max-w-xl text-lg text-pretty text-muted-foreground">{t.heroBody}</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/report" className={buttonVariants({ size: "lg", className: "h-11 px-5 text-base" })}>
+          <h1 className="text-[2.5rem] leading-[1.1] font-semibold text-balance sm:text-5xl lg:text-6xl">{t.heroTitle}</h1>
+          <p className="mt-5 max-w-xl text-base text-pretty text-muted-foreground sm:mt-6 sm:text-lg">{t.heroBody}</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/report" className={cn(buttonVariants({ size: "lg" }), "h-12 px-6 text-base shadow-sm")}>
               {t.ctaReport}
             </Link>
-            <Link href="/dashboard" className={buttonVariants({ size: "lg", variant: "outline", className: "h-11 px-5 text-base" })}>
+            <Link href="/dashboard" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-12 border-foreground/25 px-6 text-base")}>
               {t.ctaDashboard}
             </Link>
           </div>
@@ -104,23 +105,24 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="mx-auto max-w-6xl px-4 py-20">
+      <section className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
         <h2 className="max-w-2xl text-3xl font-semibold text-balance sm:text-4xl">{t.stepsTitle}</h2>
-        <ol className="relative mt-12 grid gap-10 md:grid-cols-4 md:gap-6">
+        <ol className="relative mt-10 grid gap-8 md:mt-12 md:grid-cols-4 md:gap-6">
           <div className="road-line absolute top-6 right-0 left-0 hidden md:block" aria-hidden />
           {t.steps.map((step, i) => (
-            <li key={step.title} className="relative">
-              <span className="relative flex size-12 items-center justify-center rounded-full bg-foreground font-heading text-xl font-semibold text-signal ring-4 ring-background">
+            // Number beside the text on phones, above it on the 4-column row from md up.
+            <li key={step.title} className="relative grid grid-cols-[auto_1fr] gap-x-4 md:block">
+              <span className="relative row-span-2 flex size-11 items-center justify-center rounded-full bg-foreground font-heading text-lg font-semibold text-signal ring-4 ring-background md:size-12 md:text-xl">
                 {i + 1}
               </span>
-              <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
-              <p className="mt-2 text-muted-foreground">{step.body}</p>
+              <h3 className="self-center text-lg font-semibold md:mt-5">{step.title}</h3>
+              <p className="mt-1.5 text-muted-foreground md:mt-2">{step.body}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-20">
+      <section className="mx-auto max-w-6xl px-4 pb-14 sm:pb-20">
         <div className="overflow-hidden rounded-2xl border bg-card">
           <div className="p-6 sm:p-10">
             <h2 className="text-3xl font-semibold sm:text-4xl">{t.orgsTitle}</h2>
@@ -143,7 +145,7 @@ export default async function Home() {
       </section>
 
       <section className="border-y bg-accent/60">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 lg:grid-cols-[1fr_1.4fr]">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:gap-10 sm:py-20 lg:grid-cols-[1fr_1.4fr]">
           <h2 className="text-3xl font-semibold text-balance sm:text-4xl">{t.trustTitle}</h2>
           <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
             {t.trust.map((item) => (
@@ -158,7 +160,7 @@ export default async function Home() {
 
       <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-10 text-sm text-muted-foreground">
         <p>{t.footerBuilt}</p>
-        <a href="https://github.com/anirudh12032008/webforge" className="inline-flex items-center gap-1.5 hover:text-foreground">
+        <a href="https://github.com/anirudh12032008/webforge" className="inline-flex min-h-11 items-center gap-1.5 hover:text-foreground">
           <GitBranch className="size-4" aria-hidden />
           {t.footerCode}
         </a>
