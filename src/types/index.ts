@@ -100,3 +100,15 @@ export type AuditEntry = {
   after: Record<string, unknown> | null;
   createdAt: string;
 };
+
+/** One row of the admin triage table. */
+export type ComplaintListItem = Pick<
+  Complaint,
+  "id" | "title" | "locationLabel" | "location" | "category" | "categoryConfidence" | "safetyRisk" | "priorityScore" | "status" | "relatedCount" | "createdAt"
+> & { departmentName: string | null; orgSlug: string; orgName: string };
+
+/** Headline numbers for the dashboard, scoped to the selected org. */
+export type DashboardStats = { open: number; urgent: number; overdue: number; linkedDuplicates: number };
+
+/** A complaint as a map marker. */
+export type MapPoint = Pick<Complaint, "id" | "title" | "location" | "category" | "priorityScore" | "status">;
