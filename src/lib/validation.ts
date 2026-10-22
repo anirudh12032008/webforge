@@ -59,3 +59,6 @@ export const patchComplaintSchema = z
   .partial()
   .refine((patch) => Object.keys(patch).length > 0, { message: "Nothing to update" });
 export type PatchComplaintInput = z.infer<typeof patchComplaintSchema>;
+
+/** ?org= filter shared by analytics, clusters and other org-scoped reads. */
+export const orgQuerySchema = z.object({ org: z.string().trim().min(1).max(60).optional() });
