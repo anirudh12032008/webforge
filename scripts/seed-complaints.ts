@@ -93,6 +93,7 @@ async function main() {
         reporterName: seed.reporterName ?? null,
         reporterContact: null,
         orgSlug: seed.org,
+        locale: "en",
       });
       const createdAt = new Date(Date.now() - seed.daysAgo * 86_400_000 - Math.random() * 6 * 3_600_000);
       const row = await getComplaint(complaint.id);

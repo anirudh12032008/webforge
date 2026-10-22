@@ -43,8 +43,8 @@ export async function submitComplaint(input: CreateComplaintInput): Promise<{ co
   if (!org) throw new OrgNotEligibleError(input.orgSlug ? `${input.orgSlug} doesn't cover this location` : "No organisation covers this location");
 
   const row = await insertComplaint({
-    title: input.title,
-    description: input.description,
+    title: input.title ?? "Photo report",
+    description: input.description ?? "",
     photoUrl: input.photoUrl ?? null,
     location: input.location,
     locationLabel: input.locationLabel ?? null,
@@ -53,10 +53,14 @@ export async function submitComplaint(input: CreateComplaintInput): Promise<{ co
     orgId: org.id,
   });
 
-  const [classification, embedding] = await Promise.all([
+  // With text we embed in parallel with classification; a photo-only report embeds the AI's summary.
+  const [classification, textEmbedding] = await Promise.all([
     classifyComplaint(input),
-    embedText(`${input.title}\n${input.description}`),
+    input.description ? embedText(`${input.title ?? ""}\n${input.description}`) : Promise.resolve(null),
   ]);
+  const title = input.title ?? classification.suggestedTitle;
+  const description = input.description ?? classification.summary;
+  const embedding = textEmbedding ?? (description ? await embedText(`${title}\n${description}`) : null);
   const dedup = await findDuplicates({ location: input.location, orgId: org.id, embedding, excludeId: row.id });
   const relatedCount = dedup.relatedIds.length + (dedup.duplicateOf ? 1 : 0);
   const priority = computePriority({
@@ -69,6 +73,8 @@ export async function submitComplaint(input: CreateComplaintInput): Promise<{ co
   const routing = chooseDepartment(classification, await getDepartmentsWithLoad(org.id));
 
   const analysisFields = {
+    title,
+    description,
     category: classification.category,
     categoryConfidence: classification.confidence,
     severity: classification.severity,
@@ -89,7 +95,7 @@ export async function submitComplaint(input: CreateComplaintInput): Promise<{ co
     const original = await incrementRelatedCount(dedup.duplicateOf);
     if (original) await reprioritize(original);
   }
-  const { embedding: _vector, priorityBreakdown: _breakdown, ...audited } = analysisFields;
+  const { embedding: _vector, priorityBreakdown: _breakdown, description: _text, ...audited } = analysisFields;
   const [rank] = await Promise.all([
     getOpenRank(org.id, priority.score),
     writeAudit({

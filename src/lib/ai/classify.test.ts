@@ -19,6 +19,8 @@ describe("normalizeClassification", () => {
       safetyRisk: 0,
       communityImpact: 3.6,
       reasoning: "  Deep pothole\n on the main road.  ",
+      suggestedTitle: "  Deep pothole on main road ",
+      summary: "A deep pothole on the main road. ",
     });
     expect(c).toEqual({
       category: "pothole",
@@ -27,6 +29,8 @@ describe("normalizeClassification", () => {
       safetyRisk: 1,
       communityImpact: 4,
       reasoning: "Deep pothole on the main road.",
+      suggestedTitle: "Deep pothole on main road",
+      summary: "A deep pothole on the main road.",
       usedFallback: false,
     });
   });

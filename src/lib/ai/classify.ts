@@ -2,9 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { env } from "@/env";
-import { CATEGORIES, type Classification } from "@/types";
+import { readPhoto } from "@/lib/photos";
+import { CATEGORIES, type Classification, type Locale } from "@/types";
 
-export const CLASSIFIER_MODEL = "claude-sonnet-4-5";
+export const CLASSIFIER_MODEL = "claude-opus-5-5";
+// Classification is a short, well-specified task: low effort keeps the user-facing wait short.
+const EFFORT = "low";
 
 const outputSchema = z.object({
   category: z.enum(CATEGORIES),
@@ -13,6 +16,8 @@ const outputSchema = z.object({
   safetyRisk: z.number(),
   communityImpact: z.number(),
   reasoning: z.string(),
+  suggestedTitle: z.string(),
+  summary: z.string(),
 });
 type RawClassification = z.infer<typeof outputSchema>;
 
@@ -24,6 +29,8 @@ export const FALLBACK_CLASSIFICATION: Classification = {
   safetyRisk: 3,
   communityImpact: 3,
   reasoning: "AI classification unavailable — defaulted for manual review.",
+  suggestedTitle: "Reported issue",
+  summary: "",
   usedFallback: true,
 };
 
@@ -42,7 +49,11 @@ Rate each on 1–5:
 - communityImpact: how many people are affected (1 one person, 5 a whole neighbourhood, hostel or main road)
 confidence: 0–1, how sure you are of the category.
 reasoning: one sentence under 25 words citing the concrete evidence from the text and/or photo.
-If a photo is attached, trust what it shows over vague text.`;
+suggestedTitle: a specific title under 60 characters, e.g. "Open manhole outside Hostel 7 gate".
+summary: one or two plain sentences describing the problem as a maintenance worker would need it.
+If a photo is attached, trust what it shows over vague text. If there is only a photo, describe what it shows.`;
+
+const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", hi: "Hindi (Devanagari script)" };
 
 const clampInt = (n: number) => Math.min(5, Math.max(1, Math.round(n)));
 
@@ -55,8 +66,39 @@ export function normalizeClassification(raw: RawClassification): Classification 
     safetyRisk: clampInt(raw.safetyRisk),
     communityImpact: clampInt(raw.communityImpact),
     reasoning: raw.reasoning.replace(/\s+/g, " ").trim().slice(0, 300),
+    suggestedTitle: raw.suggestedTitle.replace(/\s+/g, " ").trim().slice(0, 120) || "Reported issue",
+    summary: raw.summary.trim().slice(0, 1000),
     usedFallback: false,
   };
+}
+
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+type ImageType = (typeof IMAGE_TYPES)[number];
+const MAX_INLINE_BYTES = 5 * 1024 * 1024;
+
+function inline(bytes: ArrayBuffer, type: string): Anthropic.ImageBlockParam["source"] | null {
+  if (bytes.byteLength > MAX_INLINE_BYTES || !(IMAGE_TYPES as readonly string[]).includes(type)) return null;
+  return { type: "base64", media_type: type as ImageType, data: Buffer.from(bytes).toString("base64") };
+}
+
+/**
+ * Fetches the photo ourselves and inlines it as base64, so vision works even when a host blocks
+ * Anthropic's fetcher (or a Blob store is private). Falls back to a URL source if the fetch fails.
+ */
+async function imageSource(url: string): Promise<Anthropic.ImageBlockParam["source"] | null> {
+  const own = await readPhoto(url).catch(() => null);
+  if (own) return inline(own.bytes, own.contentType);
+  if (!url.startsWith("https://")) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "CampusSense/1.0 (civic issue triage)" } });
+    const type = res.headers.get("content-type")?.split(";")[0] ?? "";
+    const bytes = res.ok ? await res.arrayBuffer() : null;
+    const source = bytes && inline(bytes, type);
+    if (source) return source;
+  } catch {
+    // Network error or timeout: let Claude try the URL directly.
+  }
+  return { type: "url", url };
 }
 
 let client: Anthropic | null = null;
@@ -68,22 +110,33 @@ const getClient = () => (client ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KE
  * returns FALLBACK_CLASSIFICATION instead of throwing.
  */
 export async function classifyComplaint(input: {
-  title: string;
-  description: string;
+  title?: string | null;
+  description?: string | null;
   photoUrl?: string | null;
+  locale?: Locale;
 }): Promise<Classification> {
+  const reported = [input.title && `Title: ${input.title}`, input.description && `Description: ${input.description}`].filter(Boolean);
+  const language = LANGUAGE_NAMES[input.locale ?? "en"];
   const content: Anthropic.ContentBlockParam[] = [
-    { type: "text", text: `Title: ${input.title}\nDescription: ${input.description}` },
+    {
+      type: "text",
+      text: `${reported.length ? reported.join("\n") : "No text was given; classify from the photo."}\n\nWrite reasoning, suggestedTitle and summary in ${language}.`,
+    },
   ];
-  if (input.photoUrl) content.unshift({ type: "image", source: { type: "url", url: input.photoUrl } });
+  const photo = input.photoUrl ? await imageSource(input.photoUrl) : null;
+  if (photo) content.unshift({ type: "image", source: photo });
 
   try {
-    const message = await getClient().messages.parse({
+    // Server-side fallback: if a safety classifier declines, the API re-runs the request on a
+    // fallback model inside the same call instead of returning a refusal.
+    const message = await getClient().beta.messages.parse({
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
       model: CLASSIFIER_MODEL,
-      max_tokens: 400,
+      max_tokens: 2000,
+      output_config: { effort: EFFORT, format: zodOutputFormat(outputSchema) },
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content }],
-      output_config: { format: zodOutputFormat(outputSchema) },
     });
     return message.parsed_output ? normalizeClassification(message.parsed_output) : FALLBACK_CLASSIFICATION;
   } catch (err) {

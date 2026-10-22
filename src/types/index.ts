@@ -23,6 +23,9 @@ export type PriorityFactor = {
 
 export type LngLat = { lng: number; lat: number };
 
+export const LOCALES = ["en", "hi"] as const;
+export type Locale = (typeof LOCALES)[number];
+
 export const ORG_KINDS = ["city", "campus"] as const;
 export type OrgKind = (typeof ORG_KINDS)[number];
 
@@ -78,6 +81,9 @@ export type Classification = {
   safetyRisk: number;
   communityImpact: number;
   reasoning: string;
+  /** AI-written title and description, used when the reporter sent only a photo. */
+  suggestedTitle: string;
+  summary: string;
   usedFallback: boolean;
 };
 

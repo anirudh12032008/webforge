@@ -1,4 +1,4 @@
-import type { CreateComplaintInput, PatchComplaintInput } from "@/lib/validation";
+import type { BulkStatusInput, CreateComplaintBody, PatchComplaintInput } from "@/lib/validation";
 import type { Analysis, Complaint, LngLat, Org, ReporterView } from "@/types";
 
 /** A failed API call, carrying the server's message and any per-field validation errors. */
@@ -45,6 +45,23 @@ export const api = {
       body: JSON.stringify(patch),
     }).then((r) => r.complaint),
 
+  bulkStatus: (input: BulkStatusInput, actor = "admin") =>
+    request<{ updated: number }>("/api/complaints/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-actor": actor },
+      body: JSON.stringify(input),
+    }).then((r) => r.updated),
+
+  mergeComplaint: (id: string, into: string, actor = "admin") =>
+    request<{ complaint: Complaint }>(`/api/complaints/${id}/merge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-actor": actor },
+      body: JSON.stringify({ into }),
+    }),
+
+  unmergeComplaint: (id: string, actor = "admin") =>
+    request<{ complaint: Complaint }>(`/api/complaints/${id}/merge`, { method: "DELETE", headers: { "x-actor": actor } }),
+
   myReports: (ids: string[]) =>
     request<{ reports: ReporterView[] }>("/api/my-reports", {
       method: "POST",
@@ -52,7 +69,7 @@ export const api = {
       body: JSON.stringify({ ids }),
     }).then((r) => r.reports),
 
-  submitComplaint: (input: CreateComplaintInput) =>
+  submitComplaint: (input: CreateComplaintBody) =>
     request<SubmitResponse>("/api/complaints", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
