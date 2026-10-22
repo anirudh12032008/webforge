@@ -86,7 +86,8 @@ function PickerMap({ value, onPick, onAddress }: Props) {
           mapId="DEMO_MAP_ID"
           defaultCenter={DEFAULT_CENTER}
           defaultZoom={15}
-          gestureHandling="cooperative"
+          // One-finger page scroll on touch screens; normal wheel zoom with a mouse.
+          gestureHandling={typeof window !== "undefined" && matchMedia("(pointer: coarse)").matches ? "cooperative" : "greedy"}
           disableDefaultUI
           zoomControl
           clickableIcons={false}

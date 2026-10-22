@@ -57,6 +57,11 @@ export function HeatmapOverlay({ points, opacity = 0.75 }: { points: HeatPoint[]
         // Cover exactly the visible map rect so the canvas stays aligned while panning.
         const width = Math.ceil(ne.x - sw.x);
         const height = Math.ceil(sw.y - ne.y);
+        // Before layout (or when bounds wrap the globe) the rect is empty or huge; getImageData would throw.
+        if (width <= 0 || height <= 0 || width * height > 8_000_000) {
+          canvas.width = canvas.height = 1;
+          return;
+        }
         const dpr = window.devicePixelRatio || 1;
         canvas.style.left = `${sw.x}px`;
         canvas.style.top = `${ne.y}px`;
