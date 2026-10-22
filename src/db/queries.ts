@@ -1,4 +1,4 @@
-import { and, asc, cosineDistance, eq, gte, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, cosineDistance, eq, gt, gte, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import type { AuditEntry, Complaint, LngLat, Org } from "@/types";
 import { db } from "./client";
 import { toEwkt } from "./geography";
@@ -77,6 +77,32 @@ export async function findNearby(opts: {
       ),
     )
     .orderBy(asc(complaints.createdAt));
+}
+
+/** Adds one to a complaint's related-report count (another duplicate landed on it). */
+export async function incrementRelatedCount(id: string): Promise<ComplaintRow | null> {
+  const [row] = await db
+    .update(complaints)
+    .set({ relatedCount: sql`${complaints.relatedCount} + 1` })
+    .where(eq(complaints.id, id))
+    .returning();
+  return row ?? null;
+}
+
+/** 1-based position of `score` among the org's open, non-duplicate complaints (1 = most urgent). */
+export async function getOpenRank(orgId: number, score: number): Promise<number> {
+  const [row] = await db
+    .select({ ahead: sql<number>`count(*)`.mapWith(Number) })
+    .from(complaints)
+    .where(
+      and(
+        eq(complaints.orgId, orgId),
+        notInArray(complaints.status, ["resolved", "rejected"]),
+        isNull(complaints.duplicateOf),
+        gt(complaints.priorityScore, score),
+      ),
+    );
+  return (row?.ahead ?? 0) + 1;
 }
 
 /** Appends one audit entry; `before`/`after` hold only the fields that changed. */

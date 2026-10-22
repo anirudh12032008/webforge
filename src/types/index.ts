@@ -38,6 +38,9 @@ export type Department = {
   capacity: number;
 };
 
+/** A department plus how many unresolved complaints it currently holds. */
+export type DepartmentLoad = Department & { openCount: number };
+
 /** A complaint as sent over the API: no embedding, ISO date strings. */
 export type Complaint = {
   id: string;
@@ -85,6 +88,7 @@ export type Analysis = {
   relatedIds: string[];
   priority: { score: number; rank: number; breakdown: PriorityFactor[] };
   department: Department | null;
+  routingReason: string;
 };
 
 export type AuditEntry = {
