@@ -1,15 +1,18 @@
 import Link from "next/link";
-
-const ORG_TABS = [
-  { slug: undefined, label: "All" },
-  { slug: "manit", label: "MANIT campus" },
-  { slug: "bmc", label: "Bhopal city" },
-];
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
+import { getLocale } from "@/lib/i18n/server";
 
 /** All / campus / city switch shared by admin pages; the selection lives in ?org= so it's linkable. */
-export function OrgTabs({ basePath, current }: { basePath: string; current?: string }) {
+export async function OrgTabs({ basePath, current }: { basePath: string; current?: string }) {
+  const t = pick(ADMIN, await getLocale());
+  const ORG_TABS = [
+    { slug: undefined, label: t.orgAll },
+    { slug: "manit", label: t.orgManit },
+    { slug: "bmc", label: t.orgBmc },
+  ];
   return (
-    <nav className="flex max-w-full gap-1 overflow-x-auto rounded-lg border bg-card p-1 text-sm shadow-xs" aria-label="Organisation">
+    <nav className="flex max-w-full gap-1 overflow-x-auto rounded-lg border bg-card p-1 text-sm shadow-xs" aria-label={t.orgNav}>
       {ORG_TABS.map((tab) => (
         <Link
           key={tab.label}

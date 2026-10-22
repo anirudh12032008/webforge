@@ -3,8 +3,12 @@
 import { AdvancedMarker, InfoWindow, useMap, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Repeat } from "lucide-react";
 import { useEffect, useState } from "react";
+import { waiting } from "@/components/admin/console";
+import { useLocale } from "@/components/shared/locale-provider";
 import type { Hotspot } from "@/lib/geo/clusters";
-import { CATEGORY_LABELS, waitingFor } from "@/lib/labels";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
+import { categoryLabels } from "@/lib/i18n/messages/labels";
 
 /** Same radius DBSCAN clusters with (CLUSTER_EPS_M), so the bubble shows the area that was grouped. */
 const BUBBLE_RADIUS_M = 60;
@@ -56,17 +60,19 @@ function HotspotCircles({ hotspots, onSelect }: { hotspots: Hotspot[]; onSelect:
 
 /** Hotspot bubbles: circle + count pill (with a Recurring badge) and an info window on click. */
 export function HotspotBubbles({ hotspots }: { hotspots: Hotspot[] }) {
+  const locale = useLocale();
+  const t = pick(ADMIN, locale);
   const [selected, setSelected] = useState<Hotspot | null>(null);
   return (
     <>
       <HotspotCircles hotspots={hotspots} onSelect={setSelected} />
       {hotspots.map((h) => (
-        <AdvancedMarker key={h.clusterId} position={h.center} title={h.label ?? "Hotspot"} onClick={() => setSelected(h)} zIndex={1000}>
+        <AdvancedMarker key={h.clusterId} position={h.center} title={h.label ?? t.hotspot} onClick={() => setSelected(h)} zIndex={1000}>
           <span className="flex items-center gap-1 rounded-full border border-white bg-foreground px-2 py-0.5 text-xs font-semibold text-background shadow-md">
             {h.reports}
             {h.recurring && (
               <span className="flex items-center gap-0.5 rounded-full bg-safety px-1.5 text-[10px] text-white">
-                <Repeat className="size-2.5" aria-hidden /> Recurring
+                <Repeat className="size-2.5" aria-hidden /> {t.recurring}
               </span>
             )}
           </span>
@@ -75,13 +81,13 @@ export function HotspotBubbles({ hotspots }: { hotspots: Hotspot[] }) {
       {selected && (
         <InfoWindow position={selected.center} onCloseClick={() => setSelected(null)} headerDisabled>
           <div className="max-w-60 space-y-1 p-1 text-sm text-foreground">
-            <p className="font-medium">{selected.label ?? "Unnamed location"}</p>
-            <p className="text-muted-foreground">{selected.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}</p>
+            <p className="font-medium">{selected.label ?? t.unnamedLocation}</p>
+            <p className="text-muted-foreground">{selected.categories.map((c) => categoryLabels(locale)[c]).join(", ")}</p>
             <p>
-              {selected.recentReports} report{selected.recentReports === 1 ? "" : "s"} in the last 30 days
-              {selected.recurring && <span className="font-medium text-safety">: recurring</span>}
+              {t.recentReports(selected.recentReports)}
+              {selected.recurring && <span className="font-medium text-safety">{t.recurringSuffix}</span>}
             </p>
-            <p className="text-muted-foreground">Last report {waitingFor(selected.lastReportedAt)} ago</p>
+            <p className="text-muted-foreground">{t.lastReport(waiting(selected.lastReportedAt, locale))}</p>
           </div>
         </InfoWindow>
       )}

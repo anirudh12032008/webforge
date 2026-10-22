@@ -4,6 +4,9 @@ import { APIProvider, useMapsLibrary } from "@vis.gl/react-google-maps";
 import { EyeOff, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "@/components/admin/console";
+import { useLocale } from "@/components/shared/locale-provider";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
 import type { LngLat } from "@/types";
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -15,6 +18,7 @@ const COVERAGE_RADIUS_M = 75;
  */
 function Panorama({ location }: { location: LngLat }) {
   const lib = useMapsLibrary("streetView");
+  const t = pick(ADMIN, useLocale());
   const ref = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "none">("loading");
 
@@ -33,11 +37,11 @@ function Panorama({ location }: { location: LngLat }) {
 
   return (
     <div className="relative h-60 overflow-hidden rounded-lg border bg-muted sm:h-72">
-      <div ref={ref} className="absolute inset-0" aria-label="Street View of the reported location" />
+      <div ref={ref} className="absolute inset-0" aria-label={t.streetViewAria} />
       {state !== "ready" && (
         <p className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground">
           {state === "loading" ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <EyeOff className="size-5" aria-hidden />}
-          {state === "loading" ? "Loading Street View…" : `No Street View imagery within ${COVERAGE_RADIUS_M} m of this spot.`}
+          {state === "loading" ? t.streetViewLoading : t.streetViewNone(COVERAGE_RADIUS_M)}
         </p>
       )}
     </div>
@@ -46,7 +50,8 @@ function Panorama({ location }: { location: LngLat }) {
 
 /** Street View of a complaint's location for the admin detail page. */
 export function StreetView({ location }: { location: LngLat }) {
-  if (!MAPS_KEY) return <EmptyState icon={EyeOff}>Street View unavailable: the Google Maps key isn&apos;t configured.</EmptyState>;
+  const t = pick(ADMIN, useLocale());
+  if (!MAPS_KEY) return <EmptyState icon={EyeOff}>{t.streetViewUnavailable}</EmptyState>;
   return (
     <APIProvider apiKey={MAPS_KEY}>
       <Panorama location={location} />

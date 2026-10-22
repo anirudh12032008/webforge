@@ -11,12 +11,17 @@ import { OverrideControls } from "@/components/admin/override-controls";
 import { StreetView } from "@/components/admin/street-view";
 import { PriorityBar } from "@/components/shared/priority-bar";
 import { getComplaintDetail, type LinkedReport } from "@/db/complaint-detail";
-import { CATEGORY_LABELS, priorityBand } from "@/lib/labels";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
+import { categoryLabels, factorLabels, orgName } from "@/lib/i18n/messages/labels";
+import { getLocale } from "@/lib/i18n/server";
+import { priorityBand } from "@/lib/labels";
+import type { Locale } from "@/types";
 
 export const metadata: Metadata = { title: "Complaint | CivicLens" };
 export const dynamic = "force-dynamic";
 
-function LinkedList({ items, empty }: { items: LinkedReport[]; empty: string }) {
+function LinkedList({ items, empty, locale }: { items: LinkedReport[]; empty: string; locale: Locale }) {
   if (items.length === 0) return <EmptyState icon={CircleCheck}>{empty}</EmptyState>;
   return (
     <ul className="divide-y text-sm">
@@ -25,9 +30,9 @@ function LinkedList({ items, empty }: { items: LinkedReport[]; empty: string }) 
           <Link href={`/complaints/${r.id}`} className="flex items-center justify-between gap-3 py-2.5 hover:text-primary">
             <span className="min-w-0 truncate font-medium">{r.title}</span>
             {r.similarity !== undefined ? (
-              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums">{Math.round(r.similarity * 100)}% similar</span>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums">{pick(ADMIN, locale).similar(Math.round(r.similarity * 100))}</span>
             ) : (
-              <StatusChip status={r.status} />
+              <StatusChip status={r.status} locale={locale} />
             )}
           </Link>
         </li>
@@ -50,8 +55,9 @@ function Score({ label, value, alert }: { label: string; value: number | null; a
 
 export default async function ComplaintPage({ params }: { params: Promise<{ id: string }> }) {
   const id = z.uuid().safeParse((await params).id);
-  const detail = id.success ? await getComplaintDetail(id.data) : null;
+  const [detail, locale] = await Promise.all([id.success ? getComplaintDetail(id.data) : null, getLocale()]);
   if (!detail) notFound();
+  const t = pick(ADMIN, locale);
   const { complaint: c, org, orgDepartments, duplicates, related, audit } = detail;
   const band = priorityBand(c.priorityScore);
   const usedFallback = audit.some((a) => a.action === "ai_analysis" && a.after?.usedFallback === true);
@@ -62,10 +68,10 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:py-8">
       <div className="flex items-center justify-between gap-4">
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" aria-hidden /> Back to triage
+          <ArrowLeft className="size-4" aria-hidden /> {t.backToTriage}
         </Link>
         <a href="#actions" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary lg:hidden">
-          <SlidersHorizontal className="size-4" aria-hidden /> Jump to actions
+          <SlidersHorizontal className="size-4" aria-hidden /> {t.jumpToActions}
         </a>
       </div>
 
@@ -75,8 +81,8 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="font-mono font-medium">#{c.id.slice(0, 8)}</span>
-              <StatusChip status={c.status} />
-              <span>{org.name}</span>
+              <StatusChip status={c.status} locale={locale} />
+              <span>{orgName(locale, org)}</span>
             </div>
             <h1 className="mt-2 text-2xl leading-tight font-semibold text-balance sm:text-3xl">{c.title}</h1>
             <p className="mt-2 flex items-start gap-1.5 text-muted-foreground">
@@ -86,48 +92,48 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
               <Clock className="size-4 shrink-0" aria-hidden />
               <span>
-                Reported <span suppressHydrationWarning>{ago(c.createdAt)}</span>{c.reporterName ? ` by ${c.reporterName}` : ""}
+                {t.reportedLabel} <span suppressHydrationWarning>{ago(c.createdAt, locale)}</span>{c.reporterName ? t.by(c.reporterName) : ""}
               </span>
             </p>
           </div>
           <div className="flex items-center gap-3 border-t pt-4 sm:block sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6 sm:text-right">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Priority</p>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t.priority}</p>
             <p className={`inline-block rounded-lg px-3 py-1.5 font-heading text-4xl font-semibold tabular-nums sm:mt-1 ${band.className}`}>{Math.round(c.priorityScore)}</p>
-            <p className="text-sm font-medium sm:mt-1">{band.label}</p>
+            <p className="text-sm font-medium sm:mt-1">{t.band[band.label]}</p>
           </div>
         </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <div className="min-w-0 space-y-6">
-          <Panel title="Report" icon={FileText}>
+          <Panel title={t.report} icon={FileText}>
             <div className="space-y-4">
               {c.photoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- user-uploaded Blob URL, arbitrary size
-                <img src={c.photoUrl} alt={`Photo of ${c.title}`} className="max-h-96 w-full rounded-lg border bg-muted object-cover" />
+                <img src={c.photoUrl} alt={t.photoAlt(c.title)} className="max-h-96 w-full rounded-lg border bg-muted object-cover" />
               ) : (
-                <EmptyState icon={ImageOff}>No photo attached to this report.</EmptyState>
+                <EmptyState icon={ImageOff}>{t.noPhoto}</EmptyState>
               )}
               <p className="leading-relaxed whitespace-pre-line">{c.description}</p>
             </div>
           </Panel>
 
-          <Panel title="Location" icon={MapPin} action={<span className="font-mono text-xs text-muted-foreground">{coords}</span>}>
+          <Panel title={t.location} icon={MapPin} action={<span className="font-mono text-xs text-muted-foreground">{coords}</span>}>
             <StreetView location={c.location} />
           </Panel>
 
-          <Panel title="AI assessment" icon={Sparkles}>
+          <Panel title={t.aiAssessment} icon={Sparkles}>
             <div className="space-y-5">
               {usedFallback && (
                 <p className="flex gap-2 rounded-lg border border-signal bg-signal/15 p-3 text-sm">
                   <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-                  The AI couldn&apos;t classify this report. Set the category in Override.
+                  {t.aiFallback}
                 </p>
               )}
               <div>
                 <div className="flex items-baseline justify-between gap-4">
-                  <p className="font-semibold">{CATEGORY_LABELS[c.category]}</p>
-                  {c.categoryConfidence !== null && <p className="text-sm text-muted-foreground tabular-nums">{Math.round(c.categoryConfidence * 100)}% confident</p>}
+                  <p className="font-semibold">{categoryLabels(locale)[c.category]}</p>
+                  {c.categoryConfidence !== null && <p className="text-sm text-muted-foreground tabular-nums">{t.confident(Math.round(c.categoryConfidence * 100))}</p>}
                 </div>
                 {c.categoryConfidence !== null && (
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
@@ -142,14 +148,14 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
                 </p>
               )}
               <dl className="grid grid-cols-3 gap-2 sm:gap-3">
-                <Score label="Severity" value={c.severity} />
-                <Score label="Safety" value={c.safetyRisk} alert={(c.safetyRisk ?? 0) >= 4} />
-                <Score label="Impact" value={c.communityImpact} />
+                <Score label={t.severity} value={c.severity} />
+                <Score label={t.safety} value={c.safetyRisk} alert={(c.safetyRisk ?? 0) >= 4} />
+                <Score label={t.impact} value={c.communityImpact} />
               </dl>
               {c.priorityBreakdown && (
                 <div className="space-y-2 border-t pt-4">
-                  <h3 className="text-sm font-semibold">Why it scores {Math.round(c.priorityScore)}</h3>
-                  <PriorityBar breakdown={c.priorityBreakdown} />
+                  <h3 className="text-sm font-semibold">{t.whyScores(Math.round(c.priorityScore))}</h3>
+                  <PriorityBar breakdown={c.priorityBreakdown} labels={factorLabels(locale)} />
                 </div>
               )}
               <div className="border-t pt-4">
@@ -159,24 +165,24 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
           </Panel>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1">
-            <Panel title={<>Duplicate reports <Count n={duplicates.length} /></>} icon={Copy} bodyClassName="px-4 py-2 sm:px-5">
-              <LinkedList items={duplicates} empty="Nobody else has reported this exact issue." />
+            <Panel title={<>{t.duplicates} <Count n={duplicates.length} /></>} icon={Copy} bodyClassName="px-4 py-2 sm:px-5">
+              <LinkedList items={duplicates} empty={t.duplicatesEmpty} locale={locale} />
             </Panel>
-            <Panel title={<>Related nearby <Count n={related.length} /></>} icon={Radar} bodyClassName="px-4 py-2 sm:px-5">
-              <LinkedList items={related} empty="No similar reports within 75 m in the last 30 days." />
+            <Panel title={<>{t.related} <Count n={related.length} /></>} icon={Radar} bodyClassName="px-4 py-2 sm:px-5">
+              <LinkedList items={related} empty={t.relatedEmpty} locale={locale} />
             </Panel>
           </div>
         </div>
 
         <aside id="actions" className="min-w-0 scroll-mt-4 space-y-6">
-          <Panel title="Override" icon={SlidersHorizontal} description="Each change saves immediately and is logged in Activity.">
+          <Panel title={t.override} icon={SlidersHorizontal} description={t.overrideDesc}>
             <OverrideControls complaintId={c.id} status={c.status} category={c.category} departmentId={c.departmentId} departments={orgDepartments} />
           </Panel>
-          <Panel title="Merge" icon={Link2} description={c.duplicateOf ? "Merged as a duplicate of another report." : "Fold this into a nearby report of the same issue."}>
+          <Panel title={t.merge} icon={Link2} description={c.duplicateOf ? t.mergedDesc : t.mergeDesc}>
             <MergeControls complaintId={c.id} duplicateOf={c.duplicateOf} related={related} />
           </Panel>
-          <Panel title={<>Activity <Count n={audit.length} /></>} icon={History}>
-            <AuditTimeline entries={audit} departments={orgDepartments} />
+          <Panel title={<>{t.activity} <Count n={audit.length} /></>} icon={History}>
+            <AuditTimeline entries={audit} departments={orgDepartments} locale={locale} />
           </Panel>
         </aside>
       </div>

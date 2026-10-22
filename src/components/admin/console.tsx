@@ -1,6 +1,9 @@
 import type { LucideIcon } from "lucide-react";
-import { STATUS_LABELS, waitingFor } from "@/lib/labels";
-import type { Status } from "@/types";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
+import { statusLabels } from "@/lib/i18n/messages/labels";
+import { waitingFor } from "@/lib/labels";
+import type { Locale, Status } from "@/types";
 
 const STATUS_STYLES: Record<Status, { chip: string; dot: string }> = {
   new: { chip: "border-signal/60 bg-signal/15", dot: "bg-signal" },
@@ -12,12 +15,12 @@ const STATUS_STYLES: Record<Status, { chip: string; dot: string }> = {
 };
 
 /** Workflow status pill: colour + dot so the queue can be scanned without reading every label. */
-export function StatusChip({ status }: { status: Status }) {
+export function StatusChip({ status, locale }: { status: Status; locale: Locale }) {
   const s = STATUS_STYLES[status];
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${s.chip}`}>
       <span className={`size-1.5 rounded-full ${s.dot}`} aria-hidden />
-      {STATUS_LABELS[status]}
+      {statusLabels(locale)[status]}
     </span>
   );
 }
@@ -42,9 +45,9 @@ export function ConsoleHeader({ eyebrow, title, description, children }: { eyebr
 export type Kpi = { label: string; value: React.ReactNode; hint?: string; alert?: boolean };
 
 /** Dark "asphalt" KPI band (same language as the landing stats): alert tiles get a signal-yellow rule and value. */
-export function KpiStrip({ items }: { items: Kpi[] }) {
+export function KpiStrip({ items, locale }: { items: Kpi[]; locale: Locale }) {
   return (
-    <section aria-label="Key numbers" className="overflow-hidden rounded-xl bg-foreground text-background shadow-sm">
+    <section aria-label={pick(ADMIN, locale).keyNumbers} className="overflow-hidden rounded-xl bg-foreground text-background shadow-sm">
       <div className="road-line" aria-hidden />
       <dl className={`grid grid-cols-2 gap-x-4 gap-y-5 p-4 sm:p-5 ${items.length > 4 ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
         {items.map((k) => (
@@ -104,8 +107,14 @@ export function EmptyState({ icon: Icon, children }: { icon: LucideIcon; childre
   );
 }
 
+/** "5 h" / "3 d" waiting time in the reader's language. */
+export function waiting(iso: string, locale: Locale): string {
+  const t = pick(ADMIN, locale);
+  return waitingFor(iso).replace(" h", ` ${t.hours}`).replace(" d", ` ${t.days}`);
+}
+
 /** "5 h ago" / "just now" for relative timestamps. */
-export function ago(iso: string): string {
-  const w = waitingFor(iso);
-  return w === "0 h" ? "just now" : `${w} ago`;
+export function ago(iso: string, locale: Locale): string {
+  const t = pick(ADMIN, locale);
+  return waitingFor(iso) === "0 h" ? t.justNow : t.ago(waiting(iso, locale));
 }

@@ -6,11 +6,15 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { BulkActionsBar } from "@/components/admin/bulk-actions-bar";
-import { EmptyState, Panel, StatusChip } from "@/components/admin/console";
+import { EmptyState, Panel, StatusChip, waiting } from "@/components/admin/console";
+import { useLocale } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
-import { CATEGORY_LABELS, STATUS_LABELS, priorityBand, waitingFor } from "@/lib/labels";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
+import { categoryLabels, departmentName, statusLabels } from "@/lib/i18n/messages/labels";
+import { priorityBand } from "@/lib/labels";
 import type { ListComplaintsQuery } from "@/lib/validation";
-import { CATEGORIES, STATUSES, type ComplaintListItem } from "@/types";
+import { CATEGORIES, STATUSES, type ComplaintListItem, type Locale } from "@/types";
 
 const features = tableFeatures({});
 const col = createColumnHelper<typeof features, ComplaintListItem>();
@@ -18,15 +22,16 @@ const col = createColumnHelper<typeof features, ComplaintListItem>();
 const CLOSED = new Set(["resolved", "rejected"]);
 
 /** Columns depend on the SLA threshold so overdue waits can be flagged in the cell. */
-const makeColumns = (slaHours: number) =>
-  col.columns([
+const makeColumns = (slaHours: number, locale: Locale) => {
+  const t = pick(ADMIN, locale);
+  return col.columns([
     col.accessor("priorityScore", {
-      header: "Priority",
+      header: t.priority,
       cell: (info) => {
         const score = Math.round(info.getValue());
         const band = priorityBand(score);
         return (
-          <span className="flex items-center gap-2" title={`${band.label} priority`}>
+          <span className="flex items-center gap-2" title={t.bandPriority(t.band[band.label])}>
             <span className={`inline-flex min-w-10 justify-center rounded-md px-1.5 py-0.5 font-heading text-sm font-semibold tabular-nums ${band.className}`}>{score}</span>
             <span className="h-1.5 w-12 overflow-hidden rounded-full bg-muted" aria-hidden>
               <span className="block h-full rounded-full" style={{ width: `${Math.min(100, score)}%`, backgroundColor: band.hex }} />
@@ -36,7 +41,7 @@ const makeColumns = (slaHours: number) =>
       },
     }),
     col.accessor("title", {
-      header: "Issue",
+      header: t.colIssue,
       cell: ({ row }) => (
         <Link href={`/complaints/${row.original.id}`} className="group/title block max-w-sm min-w-56 whitespace-normal">
           <span className="font-medium group-hover/title:text-primary group-hover/title:underline underline-offset-2">{row.original.title}</span>
@@ -47,17 +52,20 @@ const makeColumns = (slaHours: number) =>
         </Link>
       ),
     }),
-    col.accessor("category", { header: "Category", cell: (info) => <span className="text-sm">{CATEGORY_LABELS[info.getValue()]}</span> }),
-    col.accessor("status", { header: "Status", cell: (info) => <StatusChip status={info.getValue()} /> }),
+    col.accessor("category", { header: t.category, cell: (info) => <span className="text-sm">{categoryLabels(locale)[info.getValue()]}</span> }),
+    col.accessor("status", { header: t.status, cell: (info) => <StatusChip status={info.getValue()} locale={locale} /> }),
     col.accessor("departmentName", {
-      header: "Team",
-      cell: (info) => <span className="text-sm">{info.getValue() ?? <span className="text-muted-foreground italic">Unassigned</span>}</span>,
+      header: t.team,
+      cell: (info) => {
+        const name = info.getValue();
+        return <span className="text-sm">{name ? departmentName(locale, name) : <span className="text-muted-foreground italic">{t.unassigned}</span>}</span>;
+      },
     }),
     col.accessor("relatedCount", {
-      header: "Reports",
+      header: t.colReports,
       cell: (info) =>
         info.getValue() > 0 ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums" title={`${info.getValue()} more report(s) of this issue`}>
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums" title={t.moreReports(info.getValue())}>
             <Link2 className="size-3" aria-hidden />+{info.getValue()}
           </span>
         ) : (
@@ -65,23 +73,24 @@ const makeColumns = (slaHours: number) =>
         ),
     }),
     col.accessor("createdAt", {
-      header: "Waiting",
+      header: t.colWaiting,
       cell: ({ row }) => {
         const overdue = !CLOSED.has(row.original.status) && Date.now() - new Date(row.original.createdAt).getTime() > slaHours * 3_600_000;
         return (
-          <span suppressHydrationWarning className={`inline-flex items-center gap-1 text-sm tabular-nums ${overdue ? "font-semibold text-safety" : ""}`} title={overdue ? `Waiting longer than ${slaHours} h` : undefined}>
+          <span suppressHydrationWarning className={`inline-flex items-center gap-1 text-sm tabular-nums ${overdue ? "font-semibold text-safety" : ""}`} title={overdue ? t.waitingLonger(slaHours) : undefined}>
             {overdue && <Clock className="size-3.5" aria-hidden />}
-            {waitingFor(row.original.createdAt)}
+            {waiting(row.original.createdAt, locale)}
           </span>
         );
       },
     }),
   ]);
+};
 
-function FilterSelect({ name, value, options, labels, onChange }: { name: string; value?: string; options: readonly string[]; labels: Record<string, string>; onChange: (value: string) => void }) {
+function FilterSelect({ name, allLabel, value, options, labels, onChange }: { name: string; allLabel: string; value?: string; options: readonly string[]; labels: Record<string, string>; onChange: (value: string) => void }) {
   return (
     <select aria-label={name} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="h-8 w-full min-w-0 rounded-lg border bg-background px-2 text-sm sm:w-auto">
-      <option value="">{`All ${name}`}</option>
+      <option value="">{allLabel}</option>
       {options.map((o) => <option key={o} value={o}>{labels[o]}</option>)}
     </select>
   );
@@ -101,7 +110,9 @@ type QueueTableProps = {
  * by row content: a router.refresh() or filter change with new rows remounts it with fresh data.
  */
 function QueueTable({ items, slaHours, selected, allSelected, toggle, toggleAll }: QueueTableProps) {
-  const [columns] = useState(() => makeColumns(slaHours));
+  const locale = useLocale();
+  const t = pick(ADMIN, locale);
+  const [columns] = useState(() => makeColumns(slaHours, locale));
   const table = useTable({ features, columns, data: items, getRowId: (row) => row.id });
   const th = "sticky top-0 z-10 bg-card px-3 py-2.5 text-xs font-semibold tracking-wide whitespace-nowrap text-muted-foreground uppercase shadow-[inset_0_-1px_0_var(--border)]";
   return (
@@ -110,7 +121,7 @@ function QueueTable({ items, slaHours, selected, allSelected, toggle, toggleAll 
         {table.getHeaderGroups().map((group) => (
           <tr key={group.id}>
             <th className={`${th} w-10`}>
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all complaints on this page" className="size-4 accent-primary" />
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label={t.selectAll} className="size-4 accent-primary" />
             </th>
             {group.headers.map((h) => <th key={h.id} className={th}>{flexRender(h.column.columnDef.header, h.getContext())}</th>)}
           </tr>
@@ -122,7 +133,7 @@ function QueueTable({ items, slaHours, selected, allSelected, toggle, toggleAll 
           return (
             <tr key={row.id} aria-selected={isSelected} className="border-b transition-colors last:border-0 hover:bg-accent/60 aria-selected:bg-accent">
               <td className="px-3 py-3 align-middle">
-                <input type="checkbox" checked={isSelected} onChange={() => toggle(row.id)} aria-label={`Select ${row.original.title}`} className="size-4 accent-primary" />
+                <input type="checkbox" checked={isSelected} onChange={() => toggle(row.id)} aria-label={t.selectRow(row.original.title)} className="size-4 accent-primary" />
               </td>
               {row.getAllCells().map((cell) => <td key={cell.id} className="px-3 py-3 align-middle whitespace-nowrap">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
             </tr>
@@ -136,6 +147,8 @@ function QueueTable({ items, slaHours, selected, allSelected, toggle, toggleAll 
 /** Triage queue. Filters, sort and page live in the URL so views are shareable and survive refresh. */
 export function TriageTable({ items, total, query, slaHours }: { items: ComplaintListItem[]; total: number; query: ListComplaintsQuery; slaHours: number }) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = pick(ADMIN, locale);
   const pathname = usePathname();
   const params = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -167,20 +180,20 @@ export function TriageTable({ items, total, query, slaHours }: { items: Complain
   const toolbar = (
     <div className="grid w-full grid-cols-2 items-center gap-2 sm:flex sm:w-auto sm:flex-wrap">
       <ListFilter className="hidden size-4 text-muted-foreground sm:block" aria-hidden />
-      <FilterSelect name="statuses" value={query.status} options={STATUSES} labels={STATUS_LABELS} onChange={(v) => setParam("status", v)} />
-      <FilterSelect name="categories" value={query.category} options={CATEGORIES} labels={CATEGORY_LABELS} onChange={(v) => setParam("category", v)} />
+      <FilterSelect name={t.status} allLabel={t.allStatuses} value={query.status} options={STATUSES} labels={statusLabels(locale)} onChange={(v) => setParam("status", v)} />
+      <FilterSelect name={t.category} allLabel={t.allCategories} value={query.category} options={CATEGORIES} labels={categoryLabels(locale)} onChange={(v) => setParam("category", v)} />
       {filtered && (
         <Button size="sm" variant="ghost" onClick={clearFilters} className="justify-self-start">
-          <X aria-hidden /> Clear
+          <X aria-hidden /> {t.clear}
         </Button>
       )}
       <label className="col-span-2 flex items-center gap-1.5 text-sm text-muted-foreground sm:ml-2">
         <ArrowDownWideNarrow className="size-4" aria-hidden />
-        <span className="sr-only">Sort</span>
-        <select aria-label="Sort" value={query.sort} onChange={(e) => setParam("sort", e.target.value)} className="h-8 min-w-0 flex-1 rounded-lg border bg-background px-2 text-sm text-foreground sm:flex-none">
-          <option value="priority">Highest priority</option>
-          <option value="oldest">Waiting longest</option>
-          <option value="newest">Newest</option>
+        <span className="sr-only">{t.sort}</span>
+        <select aria-label={t.sort} value={query.sort} onChange={(e) => setParam("sort", e.target.value)} className="h-8 min-w-0 flex-1 rounded-lg border bg-background px-2 text-sm text-foreground sm:flex-none">
+          <option value="priority">{t.sortPriority}</option>
+          <option value="oldest">{t.sortOldest}</option>
+          <option value="newest">{t.sortNewest}</option>
         </select>
       </label>
     </div>
@@ -192,7 +205,7 @@ export function TriageTable({ items, total, query, slaHours }: { items: Complain
         icon={ListOrdered}
         title={
           <>
-            Triage queue
+            {t.triageQueue}
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">{total}</span>
           </>
         }
@@ -201,7 +214,7 @@ export function TriageTable({ items, total, query, slaHours }: { items: Complain
       >
         <div className="max-h-[70vh] overflow-auto overscroll-x-contain">
           <QueueTable
-            key={items.map((i) => `${i.id}:${i.status}:${i.priorityScore}`).join("|")}
+            key={`${locale}|${items.map((i) => `${i.id}:${i.status}:${i.priorityScore}`).join("|")}`}
             items={items}
             slaHours={slaHours}
             selected={selected}
@@ -212,10 +225,10 @@ export function TriageTable({ items, total, query, slaHours }: { items: Complain
           {items.length === 0 && (
             <div className="p-6">
               <EmptyState icon={Inbox}>
-                <span className="font-medium text-foreground">{filtered ? "No complaints match these filters." : "The queue is clear."}</span>
+                <span className="font-medium text-foreground">{filtered ? t.noMatch : t.queueClear}</span>
                 {filtered && (
                   <Button size="sm" variant="outline" onClick={clearFilters}>
-                    Clear filters
+                    {t.clearFilters}
                   </Button>
                 )}
               </EmptyState>
@@ -225,17 +238,17 @@ export function TriageTable({ items, total, query, slaHours }: { items: Complain
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground sm:px-5">
           <span className="tabular-nums">
-            {items.length > 0 ? `${(query.page - 1) * query.pageSize + 1}–${(query.page - 1) * query.pageSize + items.length} of ${total}` : `0 of ${total}`}
+            {items.length > 0 ? t.range((query.page - 1) * query.pageSize + 1, (query.page - 1) * query.pageSize + items.length, total) : t.zeroOf(total)}
           </span>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" disabled={query.page <= 1} onClick={() => setParam("page", String(query.page - 1))}>
-              <ChevronLeft aria-hidden /> Previous
+              <ChevronLeft aria-hidden /> {t.previous}
             </Button>
             <span className="tabular-nums">
               {query.page} / {pages}
             </span>
             <Button size="sm" variant="outline" disabled={query.page >= pages} onClick={() => setParam("page", String(query.page + 1))}>
-              Next <ChevronRight aria-hidden />
+              {t.next} <ChevronRight aria-hidden />
             </Button>
           </div>
         </div>

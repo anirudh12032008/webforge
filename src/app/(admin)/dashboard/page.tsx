@@ -4,6 +4,9 @@ import { OrgTabs } from "@/components/admin/org-tabs";
 import { PriorityMap } from "@/components/admin/priority-map";
 import { TriageTable } from "@/components/admin/triage-table";
 import { getDashboardStats, listComplaints, listMapPoints, SLA_HOURS } from "@/db/dashboard";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
+import { getLocale } from "@/lib/i18n/server";
 import { listComplaintsQuerySchema } from "@/lib/validation";
 
 export const metadata: Metadata = { title: "Triage dashboard | CivicLens" };
@@ -16,21 +19,22 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const parsed = listComplaintsQuerySchema.safeParse(raw);
   const query = parsed.success ? parsed.data : listComplaintsQuerySchema.parse({});
 
-  const [stats, list, points] = await Promise.all([getDashboardStats(query.org), listComplaints(query), listMapPoints(query.org)]);
+  const [stats, list, points, locale] = await Promise.all([getDashboardStats(query.org), listComplaints(query), listMapPoints(query.org), getLocale()]);
+  const t = pick(ADMIN, locale);
   const kpis: Kpi[] = [
-    { label: "Open", value: stats.open, hint: "In the queue now" },
-    { label: "Safety risk 4–5", value: stats.urgent, hint: stats.urgent > 0 ? "Check these first" : "None flagged", alert: stats.urgent > 0 },
-    { label: `Waiting over ${SLA_HOURS} h`, value: stats.overdue, hint: stats.overdue > 0 ? "Past the response target" : "All within target", alert: stats.overdue > 0 },
-    { label: "Duplicates merged", value: stats.linkedDuplicates, hint: "Reports folded into one" },
+    { label: t.open, value: stats.open, hint: t.openHint },
+    { label: t.urgent, value: stats.urgent, hint: stats.urgent > 0 ? t.urgentHint : t.noneFlagged, alert: stats.urgent > 0 },
+    { label: t.overdue(SLA_HOURS), value: stats.overdue, hint: stats.overdue > 0 ? t.overdueHint : t.withinTarget, alert: stats.overdue > 0 },
+    { label: t.dupesMerged, value: stats.linkedDuplicates, hint: t.dupesHint },
   ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:py-8">
-      <ConsoleHeader eyebrow="Ops console · live queue" title="Triage" description="Open complaints across campus and city, ranked by AI priority. Open any row to review, assign or override.">
+      <ConsoleHeader eyebrow={t.dashEyebrow} title={t.dashTitle} description={t.dashIntro}>
         <OrgTabs basePath="/dashboard" current={query.org} />
       </ConsoleHeader>
 
-      <KpiStrip items={kpis} />
+      <KpiStrip items={kpis} locale={locale} />
 
       <PriorityMap points={points} />
       <TriageTable items={list.items} total={list.total} query={query} slaHours={SLA_HOURS} />

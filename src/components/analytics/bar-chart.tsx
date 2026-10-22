@@ -2,6 +2,9 @@
 
 import { ChartNoAxesColumn } from "lucide-react";
 import { Bar, BarChart as RBarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useLocale } from "@/components/shared/locale-provider";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
 
 type Datum = { label: string; value: number };
 
@@ -10,11 +13,12 @@ type Datum = { label: string; value: number };
  * reads without hovering. Height grows with the row count so labels never collide.
  */
 export function BarChart({ data, valueLabel, unit = "", color = "#1f6fb8" }: { data: Datum[]; valueLabel: string; unit?: string; color?: string }) {
+  const t = pick(ADMIN, useLocale());
   if (data.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
         <ChartNoAxesColumn className="size-5" aria-hidden />
-        Nothing to chart yet.
+        {t.nothingToChart}
       </div>
     );
   }

@@ -44,7 +44,7 @@ const DEPARTMENT_HI: Record<string, string> = {
   "BMC Health & Sanitation": "बीएमसी स्वास्थ्य एवं स्वच्छता",
 };
 
-/** Category / status / priority-factor labels in the reader's language (admin pages keep English). */
+/** Category / status / priority-factor labels in the reader's language. */
 export const categoryLabels = (locale: Locale) => (locale === "hi" ? CATEGORY_HI : CATEGORY_LABELS);
 export const statusLabels = (locale: Locale) => (locale === "hi" ? STATUS_HI : STATUS_LABELS);
 export const factorLabels = (locale: Locale) => (locale === "hi" ? FACTOR_HI : FACTOR_LABELS);

@@ -9,7 +9,11 @@ import { EmptyState, Panel } from "@/components/admin/console";
 import { HeatmapOverlay } from "@/components/map/heatmap-overlay";
 import { HotspotBubbles, useHotspots } from "@/components/map/hotspot-bubbles";
 import { DEFAULT_CENTER } from "@/components/map/location-picker";
-import { CATEGORY_LABELS, priorityBand } from "@/lib/labels";
+import { useLocale } from "@/components/shared/locale-provider";
+import { pick } from "@/lib/i18n";
+import { ADMIN } from "@/lib/i18n/messages/admin";
+import { categoryLabels } from "@/lib/i18n/messages/labels";
+import { priorityBand } from "@/lib/labels";
 import type { MapPoint } from "@/types";
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -28,6 +32,8 @@ function FitToPoints({ points }: { points: MapPoint[] }) {
 
 /** Admin map: one marker per open complaint, coloured by priority band, with an optional heat view. */
 export function PriorityMap({ points }: { points: MapPoint[] }) {
+  const locale = useLocale();
+  const t = pick(ADMIN, locale);
   const [heat, setHeat] = useState(false);
   const [showHotspots, setShowHotspots] = useState(false);
   const [selected, setSelected] = useState<MapPoint | null>(null);
@@ -47,26 +53,26 @@ export function PriorityMap({ points }: { points: MapPoint[] }) {
 
   const layers = (
     <div className="flex items-center gap-2">
-      {showHotspots && hotspots === null && <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="Loading hotspots" />}
-      {showHotspots && hotspots?.length === 0 && <span className="text-xs text-muted-foreground">No hotspots yet</span>}
-      <div role="group" aria-label="Map layers" className="flex gap-0.5 rounded-lg border bg-card p-0.5">
-        {toggle("Heat", Flame, heat, () => setHeat((h) => !h))}
-        {toggle("Hotspots", Repeat, showHotspots, () => setShowHotspots((h) => !h))}
+      {showHotspots && hotspots === null && <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label={t.loadingHotspots} />}
+      {showHotspots && hotspots?.length === 0 && <span className="text-xs text-muted-foreground">{t.noHotspots}</span>}
+      <div role="group" aria-label={t.mapLayers} className="flex gap-0.5 rounded-lg border bg-card p-0.5">
+        {toggle(t.heat, Flame, heat, () => setHeat((h) => !h))}
+        {toggle(t.hotspotsLayer, Repeat, showHotspots, () => setShowHotspots((h) => !h))}
       </div>
     </div>
   );
 
   const title = (
     <>
-      Priority map
-      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">{points.length} open</span>
+      {t.priorityMap}
+      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">{t.openN(points.length)}</span>
     </>
   );
 
   if (!MAPS_KEY) {
     return (
       <Panel title={title} icon={MapIcon}>
-        <EmptyState icon={MapIcon}>Map unavailable: the Google Maps key isn&apos;t configured.</EmptyState>
+        <EmptyState icon={MapIcon}>{t.mapUnavailable}</EmptyState>
       </Panel>
     );
   }
@@ -95,10 +101,10 @@ export function PriorityMap({ points }: { points: MapPoint[] }) {
               <div className="max-w-56 space-y-1 p-1 text-sm text-foreground">
                 <p className="font-medium">{selected.title}</p>
                 <p className="text-muted-foreground">
-                  {CATEGORY_LABELS[selected.category]}, priority {selected.priorityScore}
+                  {t.mapItem(categoryLabels(locale)[selected.category], selected.priorityScore)}
                 </p>
                 <Link href={`/complaints/${selected.id}`} className="font-medium text-primary underline-offset-4 hover:underline">
-                  Open complaint
+                  {t.openComplaint}
                 </Link>
               </div>
             </InfoWindow>
@@ -108,23 +114,23 @@ export function PriorityMap({ points }: { points: MapPoint[] }) {
 
       {points.length === 0 && (
         <p className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full border bg-background/95 px-3 py-1 text-xs text-muted-foreground shadow-sm">
-          No open complaints to plot
+          {t.noOpenToPlot}
         </p>
       )}
       {heat ? (
         <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-md border bg-background/95 px-3 py-1.5 text-xs shadow-sm">
-          Low
+          {t.low}
           <span className="h-2 w-24 rounded-full" style={{ background: "linear-gradient(90deg, rgba(31,111,184,0.15), #1f6fb8, #f2c230, #c8372d)" }} aria-hidden />
-          High concentration
+          {t.highConcentration}
         </div>
       ) : (
-        <ul className="absolute bottom-3 left-3 flex gap-3 rounded-md border bg-background/95 px-3 py-1.5 text-xs shadow-sm" aria-label="Priority legend">
+        <ul className="absolute bottom-3 left-3 flex gap-3 rounded-md border bg-background/95 px-3 py-1.5 text-xs shadow-sm" aria-label={t.priorityLegend}>
           {[80, 50, 10].map((score) => {
             const band = priorityBand(score);
             return (
               <li key={band.label} className="flex items-center gap-1.5">
                 <span className="size-2.5 rounded-full" style={{ backgroundColor: band.hex }} aria-hidden />
-                {band.label}
+                {t.band[band.label]}
               </li>
             );
           })}
