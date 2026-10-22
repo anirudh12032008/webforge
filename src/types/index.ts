@@ -112,3 +112,9 @@ export type DashboardStats = { open: number; urgent: number; overdue: number; li
 
 /** A complaint as a map marker. */
 export type MapPoint = Pick<Complaint, "id" | "title" | "location" | "category" | "priorityScore" | "status">;
+
+/** What a reporter may see about their own complaint: no contact details, no embedding. */
+export type ReporterView = Pick<Complaint, "id" | "title" | "category" | "status" | "priorityScore" | "locationLabel" | "duplicateOf" | "createdAt" | "resolvedAt"> & {
+  departmentName: string | null;
+  history: { status: Status; at: string }[];
+};

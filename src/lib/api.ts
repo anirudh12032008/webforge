@@ -1,5 +1,5 @@
 import type { CreateComplaintInput, PatchComplaintInput } from "@/lib/validation";
-import type { Analysis, Complaint, LngLat, Org } from "@/types";
+import type { Analysis, Complaint, LngLat, Org, ReporterView } from "@/types";
 
 /** A failed API call, carrying the server's message and any per-field validation errors. */
 export class ApiError extends Error {
@@ -44,6 +44,13 @@ export const api = {
       headers: { "Content-Type": "application/json", "x-actor": actor },
       body: JSON.stringify(patch),
     }).then((r) => r.complaint),
+
+  myReports: (ids: string[]) =>
+    request<{ reports: ReporterView[] }>("/api/my-reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    }).then((r) => r.reports),
 
   submitComplaint: (input: CreateComplaintInput) =>
     request<SubmitResponse>("/api/complaints", {
