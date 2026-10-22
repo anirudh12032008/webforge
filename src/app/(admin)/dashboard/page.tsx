@@ -6,7 +6,7 @@ import { TriageTable } from "@/components/admin/triage-table";
 import { getDashboardStats, listComplaints, listMapPoints, SLA_HOURS } from "@/db/dashboard";
 import { listComplaintsQuerySchema } from "@/lib/validation";
 
-export const metadata: Metadata = { title: "Triage dashboard — CivicLens" };
+export const metadata: Metadata = { title: "Triage dashboard | CivicLens" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

@@ -11,7 +11,7 @@ import { getHotspots } from "@/lib/geo/clusters";
 import { CATEGORY_LABELS } from "@/lib/labels";
 import { orgQuerySchema } from "@/lib/validation";
 
-export const metadata: Metadata = { title: "Analytics — CivicLens" };
+export const metadata: Metadata = { title: "Analytics | CivicLens" };
 export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

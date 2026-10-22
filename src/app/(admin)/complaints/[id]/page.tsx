@@ -13,7 +13,7 @@ import { PriorityBar } from "@/components/shared/priority-bar";
 import { getComplaintDetail, type LinkedReport } from "@/db/complaint-detail";
 import { CATEGORY_LABELS, priorityBand } from "@/lib/labels";
 
-export const metadata: Metadata = { title: "Complaint — CivicLens" };
+export const metadata: Metadata = { title: "Complaint | CivicLens" };
 export const dynamic = "force-dynamic";
 
 function LinkedList({ items, empty }: { items: LinkedReport[]; empty: string }) {

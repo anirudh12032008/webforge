@@ -34,7 +34,7 @@ const ORG_HI: Record<string, string> = {
 };
 
 const DEPARTMENT_HI: Record<string, string> = {
-  "MANIT Estate Office — Civil": "मैनिट एस्टेट ऑफ़िस — सिविल",
+  "MANIT Estate Office (Civil)": "मैनिट एस्टेट ऑफ़िस (सिविल)",
   "MANIT Electrical Maintenance": "मैनिट विद्युत रखरखाव",
   "MANIT Housekeeping": "मैनिट हाउसकीपिंग",
   "BMC Roads & Public Works": "बीएमसी सड़क एवं लोक निर्माण",

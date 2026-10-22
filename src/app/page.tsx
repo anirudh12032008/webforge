@@ -19,7 +19,7 @@ const EXAMPLE_TICKET: TicketData = {
   location: "Sports complex, MANIT",
   category: "electrical",
   priorityScore: 74,
-  reasoning: "Live wires hanging at knee height where children play — immediate shock risk.",
+  reasoning: "Live wires hanging at knee height where children play, an immediate shock risk.",
   breakdown: [
     { factor: "safety", weight: 0.35, raw: 5, normalized: 1, contribution: 35 },
     { factor: "severity", weight: 0.25, raw: 4, normalized: 0.75, contribution: 18.8 },

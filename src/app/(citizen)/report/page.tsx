@@ -4,7 +4,7 @@ import { pick } from "@/lib/i18n";
 import { REPORT } from "@/lib/i18n/messages/report";
 import { getLocale } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Report an issue — CivicLens" };
+export const metadata: Metadata = { title: "Report an issue | CivicLens" };
 
 export default async function ReportPage() {
   const t = pick(REPORT, await getLocale());

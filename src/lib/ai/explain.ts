@@ -17,7 +17,8 @@ export type PriorityExplanation = z.infer<typeof outputSchema> & { rank: number 
 const SYSTEM_PROMPT = `You explain a civic maintenance queue to a municipal or campus maintenance supervisor in Bhopal.
 Given one complaint, its priority breakdown and its neighbours in the open queue, write:
 - explanation: 3 short plain sentences. Say why it ranks where it does, citing the 1–2 biggest factors with their numbers from the breakdown, and what would move it up or down (e.g. more reports nearby, waiting past 72 h, a safety re-rating). No hype, no bullet points.
-- resources: one line of concrete crew/tools/time, e.g. "1 electrician, insulated tools, cordon tape; ~2 h".`;
+- resources: one line of concrete crew/tools/time, e.g. "1 electrician, insulated tools, cordon tape; ~2 h".
+Never use em dashes, en dashes or a spaced hyphen (" - "); use commas or full stops instead.`;
 
 const LANGUAGE: Record<Locale, string> = { en: "English", hi: "Hindi (Devanagari script)" };
 

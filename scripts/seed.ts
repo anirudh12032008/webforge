@@ -37,7 +37,7 @@ const DEFAULT_ORGS: z.infer<typeof orgSchema>[] = [
 ];
 
 const DEFAULT_DEPARTMENTS: z.infer<typeof departmentSchema>[] = [
-  { org: "manit", slug: "manit-civil", name: "MANIT Estate Office — Civil", categories: ["pothole", "water_leak", "other"], capacity: 15 },
+  { org: "manit", slug: "manit-civil", name: "MANIT Estate Office (Civil)", categories: ["pothole", "water_leak", "other"], capacity: 15 },
   { org: "manit", slug: "manit-electrical", name: "MANIT Electrical Maintenance", categories: ["streetlight", "electrical"], capacity: 10 },
   { org: "manit", slug: "manit-housekeeping", name: "MANIT Housekeeping", categories: ["garbage", "sanitation"], capacity: 12 },
   { org: "bmc", slug: "bmc-roads", name: "BMC Roads & Public Works", categories: ["pothole", "other"], capacity: 40 },

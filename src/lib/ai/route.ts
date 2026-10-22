@@ -9,14 +9,14 @@ const categoryLabel = (c: Category) => c.replace("_", " ");
 /** The reason sentence in the reader's language; English is what admins and tests see. */
 const REASON = {
   en: {
-    none: (cat: string) => `No department handles ${cat} yet — needs manual assignment.`,
+    none: (cat: string) => `No department handles ${cat} yet, so it needs manual assignment.`,
     urgent: "Urgent safety risk. ",
     least: (n: number, cat: string) => `least loaded of ${n} teams handling ${cat}`,
     handles: (cat: string) => `handles ${cat}`,
     final: (urgent: string, name: string, choice: string, open: number, cap: number) => `${urgent}${name} ${choice} (${open}/${cap} open).`,
   },
   hi: {
-    none: (cat: string) => `${cat} के लिए अभी कोई विभाग तय नहीं है — हाथ से सौंपना होगा।`,
+    none: (cat: string) => `${cat} के लिए अभी कोई विभाग तय नहीं है, हाथ से सौंपना होगा।`,
     urgent: "सुरक्षा का गंभीर जोखिम। ",
     least: (n: number, cat: string) => `${cat} देखने वाली ${n} टीमों में सबसे कम काम वाली`,
     handles: (cat: string) => `${cat} देखती है`,

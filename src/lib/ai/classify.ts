@@ -28,7 +28,7 @@ export const FALLBACK_CLASSIFICATION: Classification = {
   severity: 3,
   safetyRisk: 3,
   communityImpact: 3,
-  reasoning: "AI classification unavailable — defaulted for manual review.",
+  reasoning: "AI classification unavailable, defaulted for manual review.",
   suggestedTitle: "Reported issue",
   summary: "",
   usedFallback: true,
@@ -51,7 +51,8 @@ confidence: 0–1, how sure you are of the category.
 reasoning: one sentence under 25 words citing the concrete evidence from the text and/or photo.
 suggestedTitle: a specific title under 60 characters, e.g. "Open manhole outside Hostel 7 gate".
 summary: one or two plain sentences describing the problem as a maintenance worker would need it.
-If a photo is attached, trust what it shows over vague text. If there is only a photo, describe what it shows.`;
+If a photo is attached, trust what it shows over vague text. If there is only a photo, describe what it shows.
+Writing style: never use em dashes, en dashes or a spaced hyphen (" - ") in any text field; use commas or full stops instead.`;
 
 const LANGUAGE_NAMES: Record<Locale, string> = { en: "English", hi: "Hindi (Devanagari script)" };
 
