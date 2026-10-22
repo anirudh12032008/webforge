@@ -37,8 +37,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Analytics</h1>
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-foreground pb-5">
+        <div>
+          <h1 className="text-3xl font-semibold sm:text-4xl">Analytics</h1>
+          <p className="mt-1 max-w-xl text-muted-foreground">How fast problems are reported and fixed, which teams are stretched, and where issues keep coming back.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <OrgTabs basePath="/analytics" current={org} />
           <a href={`/api/export${org ? `?org=${org}` : ""}`} className={buttonVariants({ variant: "outline" })} download>
