@@ -1,22 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Public_Sans } from "next/font/google";
 import { TopNav } from "@/components/shared/top-nav";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Public Sans (built for government sites) for reading; Archivo's wide axis gives headings a road-sign feel.
+const publicSans = Public_Sans({ variable: "--font-public-sans", subsets: ["latin"] });
+const archivo = Archivo({ variable: "--font-archivo", subsets: ["latin"], axes: ["wdth"] });
 
 export const metadata: Metadata = {
   title: "CampusSense — MANIT",
-  description: "AI-powered civic issue reporting and triage for MANIT Bhopal.",
+  description: "Report civic issues in Bhopal and on the MANIT campus. AI sorts, de-duplicates and ranks them for the right team.",
 };
 
 export default function RootLayout({
@@ -25,12 +19,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${publicSans.variable} ${archivo.variable}`}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${publicSans.variable} ${archivo.variable} antialiased`}
       >
         <TopNav />
-        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <main>{children}</main>
         <Toaster />
       </body>
     </html>
