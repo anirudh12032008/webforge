@@ -1,8 +1,9 @@
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, CircleCheck, Clock, Copy, FileText, History, ImageOff, Link2, MapPin, Radar, SlidersHorizontal, Sparkles, TriangleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
+import { ago, EmptyState, Panel, StatusChip } from "@/components/admin/console";
 import { AuditTimeline } from "@/components/admin/audit-timeline";
 import { ExplainPriority } from "@/components/admin/explain-priority";
 import { MergeControls } from "@/components/admin/merge-controls";
@@ -10,33 +11,40 @@ import { OverrideControls } from "@/components/admin/override-controls";
 import { StreetView } from "@/components/admin/street-view";
 import { PriorityBar } from "@/components/shared/priority-bar";
 import { getComplaintDetail, type LinkedReport } from "@/db/complaint-detail";
-import { CATEGORY_LABELS, STATUS_LABELS, priorityBand, waitingFor } from "@/lib/labels";
+import { CATEGORY_LABELS, priorityBand } from "@/lib/labels";
 
 export const metadata: Metadata = { title: "Complaint — CampusSense" };
 export const dynamic = "force-dynamic";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-3 rounded-xl border bg-card p-5">
-      <h2 className="text-base font-semibold">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
 function LinkedList({ items, empty }: { items: LinkedReport[]; empty: string }) {
-  if (items.length === 0) return <p className="text-sm text-muted-foreground">{empty}</p>;
+  if (items.length === 0) return <EmptyState icon={CircleCheck}>{empty}</EmptyState>;
   return (
-    <ul className="space-y-2 text-sm">
+    <ul className="divide-y text-sm">
       {items.map((r) => (
-        <li key={r.id} className="flex items-baseline justify-between gap-3">
-          <Link href={`/complaints/${r.id}`} className="truncate hover:underline">{r.title}</Link>
-          <span className="shrink-0 text-muted-foreground">
-            {r.similarity !== undefined ? `${Math.round(r.similarity * 100)}% similar` : STATUS_LABELS[r.status]}
-          </span>
+        <li key={r.id}>
+          <Link href={`/complaints/${r.id}`} className="flex items-center justify-between gap-3 py-2.5 hover:text-primary">
+            <span className="min-w-0 truncate font-medium">{r.title}</span>
+            {r.similarity !== undefined ? (
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums">{Math.round(r.similarity * 100)}% similar</span>
+            ) : (
+              <StatusChip status={r.status} />
+            )}
+          </Link>
         </li>
       ))}
     </ul>
+  );
+}
+
+function Score({ label, value, alert }: { label: string; value: number | null; alert?: boolean }) {
+  return (
+    <div className={`rounded-lg border p-3 ${alert ? "border-safety/40 bg-safety/5" : "bg-background"}`}>
+      <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</dt>
+      <dd className={`mt-1 font-heading text-2xl font-semibold tabular-nums ${alert ? "text-safety" : ""}`}>
+        {value ?? "–"}
+        <span className="text-sm font-normal text-muted-foreground">/5</span>
+      </dd>
+    </div>
   );
 }
 
@@ -48,83 +56,134 @@ export default async function ComplaintPage({ params }: { params: Promise<{ id: 
   const band = priorityBand(c.priorityScore);
   const usedFallback = audit.some((a) => a.action === "ai_analysis" && a.after?.usedFallback === true);
 
-  return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-      <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden /> Back to triage
-      </Link>
+  const coords = `${c.location.lat.toFixed(5)}, ${c.location.lng.toFixed(5)}`;
 
-      <header className="flex flex-wrap items-start gap-4 border-b-2 border-foreground pb-5">
-        <span className={`rounded-lg px-3 py-2 text-2xl font-semibold tabular-nums ${band.className}`} title={`${band.label} priority`}>
-          {Math.round(c.priorityScore)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold sm:text-3xl">{c.title}</h1>
-          <p className="mt-1 text-muted-foreground">
-            {c.locationLabel ?? `${c.location.lat.toFixed(5)}, ${c.location.lng.toFixed(5)}`}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {org.name}. {STATUS_LABELS[c.status]}, reported <span suppressHydrationWarning>{waitingFor(c.createdAt)}</span> ago
-            {c.reporterName ? ` by ${c.reporterName}` : ""}.
-          </p>
+  return (
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:py-8">
+      <div className="flex items-center justify-between gap-4">
+        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-4" aria-hidden /> Back to triage
+        </Link>
+        <a href="#actions" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary lg:hidden">
+          <SlidersHorizontal className="size-4" aria-hidden /> Jump to actions
+        </a>
+      </div>
+
+      <header className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div className="hazard-band h-2" aria-hidden />
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:p-6">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-mono font-medium">#{c.id.slice(0, 8)}</span>
+              <StatusChip status={c.status} />
+              <span>{org.name}</span>
+            </div>
+            <h1 className="mt-2 text-2xl leading-tight font-semibold text-balance sm:text-3xl">{c.title}</h1>
+            <p className="mt-2 flex items-start gap-1.5 text-muted-foreground">
+              <MapPin className="mt-1 size-4 shrink-0" aria-hidden />
+              {c.locationLabel ?? coords}
+            </p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Clock className="size-4 shrink-0" aria-hidden />
+              <span>
+                Reported <span suppressHydrationWarning>{ago(c.createdAt)}</span>{c.reporterName ? ` by ${c.reporterName}` : ""}
+              </span>
+            </p>
+          </div>
+          <div className="flex items-center gap-3 border-t pt-4 sm:block sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6 sm:text-right">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Priority</p>
+            <p className={`inline-block rounded-lg px-3 py-1.5 font-heading text-4xl font-semibold tabular-nums sm:mt-1 ${band.className}`}>{Math.round(c.priorityScore)}</p>
+            <p className="text-sm font-medium sm:mt-1">{band.label}</p>
+          </div>
         </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <div className="space-y-6">
-          <Section title="Report">
-            {c.photoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element -- user-uploaded Blob URL, arbitrary size
-              <img src={c.photoUrl} alt={`Photo of ${c.title}`} className="max-h-96 w-full rounded-lg border object-cover" />
-            )}
-            <p className="whitespace-pre-line">{c.description}</p>
-            <StreetView location={c.location} />
-          </Section>
-
-          <Section title="AI assessment">
-            {usedFallback && <p className="rounded-md bg-muted p-3 text-sm">The AI couldn&apos;t classify this report. Set the category below.</p>}
-            <div className="flex items-baseline justify-between gap-4">
-              <p className="font-medium">{CATEGORY_LABELS[c.category]}</p>
-              {c.categoryConfidence !== null && <p className="text-sm text-muted-foreground">{Math.round(c.categoryConfidence * 100)}% sure</p>}
+        <div className="min-w-0 space-y-6">
+          <Panel title="Report" icon={FileText}>
+            <div className="space-y-4">
+              {c.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded Blob URL, arbitrary size
+                <img src={c.photoUrl} alt={`Photo of ${c.title}`} className="max-h-96 w-full rounded-lg border bg-muted object-cover" />
+              ) : (
+                <EmptyState icon={ImageOff}>No photo attached to this report.</EmptyState>
+              )}
+              <p className="leading-relaxed whitespace-pre-line">{c.description}</p>
             </div>
-            {c.aiReasoning && (
-              <p className="flex gap-2 text-sm text-muted-foreground">
-                <Sparkles className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {c.aiReasoning}
-              </p>
-            )}
-            <dl className="grid grid-cols-3 gap-4 text-sm">
-              <div><dt className="text-muted-foreground">Severity</dt><dd className="text-lg font-semibold">{c.severity ?? "–"}/5</dd></div>
-              <div><dt className="text-muted-foreground">Safety risk</dt><dd className={`text-lg font-semibold ${(c.safetyRisk ?? 0) >= 4 ? "text-safety" : ""}`}>{c.safetyRisk ?? "–"}/5</dd></div>
-              <div><dt className="text-muted-foreground">People affected</dt><dd className="text-lg font-semibold">{c.communityImpact ?? "–"}/5</dd></div>
-            </dl>
-            {c.priorityBreakdown && (
-              <div className="space-y-2 pt-2">
-                <h3 className="text-sm font-medium">Why it scores {Math.round(c.priorityScore)}</h3>
-                <PriorityBar breakdown={c.priorityBreakdown} />
-              </div>
-            )}
-            <ExplainPriority complaintId={c.id} />
-          </Section>
+          </Panel>
 
-          <Section title={`Duplicate reports (${duplicates.length})`}>
-            <LinkedList items={duplicates} empty="Nobody else has reported this exact issue." />
-          </Section>
-          <Section title={`Related nearby (${related.length})`}>
-            <LinkedList items={related} empty="No similar reports within 75 m in the last 30 days." />
-          </Section>
+          <Panel title="Location" icon={MapPin} action={<span className="font-mono text-xs text-muted-foreground">{coords}</span>}>
+            <StreetView location={c.location} />
+          </Panel>
+
+          <Panel title="AI assessment" icon={Sparkles}>
+            <div className="space-y-5">
+              {usedFallback && (
+                <p className="flex gap-2 rounded-lg border border-signal bg-signal/15 p-3 text-sm">
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  The AI couldn&apos;t classify this report. Set the category in Override.
+                </p>
+              )}
+              <div>
+                <div className="flex items-baseline justify-between gap-4">
+                  <p className="font-semibold">{CATEGORY_LABELS[c.category]}</p>
+                  {c.categoryConfidence !== null && <p className="text-sm text-muted-foreground tabular-nums">{Math.round(c.categoryConfidence * 100)}% confident</p>}
+                </div>
+                {c.categoryConfidence !== null && (
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round(c.categoryConfidence * 100)}%` }} />
+                  </div>
+                )}
+              </div>
+              {c.aiReasoning && (
+                <p className="flex gap-2 rounded-lg bg-accent px-3 py-2.5 text-sm">
+                  <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                  {c.aiReasoning}
+                </p>
+              )}
+              <dl className="grid grid-cols-3 gap-2 sm:gap-3">
+                <Score label="Severity" value={c.severity} />
+                <Score label="Safety" value={c.safetyRisk} alert={(c.safetyRisk ?? 0) >= 4} />
+                <Score label="Impact" value={c.communityImpact} />
+              </dl>
+              {c.priorityBreakdown && (
+                <div className="space-y-2 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Why it scores {Math.round(c.priorityScore)}</h3>
+                  <PriorityBar breakdown={c.priorityBreakdown} />
+                </div>
+              )}
+              <div className="border-t pt-4">
+                <ExplainPriority complaintId={c.id} />
+              </div>
+            </div>
+          </Panel>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1">
+            <Panel title={<>Duplicate reports <Count n={duplicates.length} /></>} icon={Copy} bodyClassName="px-4 py-2 sm:px-5">
+              <LinkedList items={duplicates} empty="Nobody else has reported this exact issue." />
+            </Panel>
+            <Panel title={<>Related nearby <Count n={related.length} /></>} icon={Radar} bodyClassName="px-4 py-2 sm:px-5">
+              <LinkedList items={related} empty="No similar reports within 75 m in the last 30 days." />
+            </Panel>
+          </div>
         </div>
 
-        <aside className="space-y-6">
-          <Section title="Actions">
+        <aside id="actions" className="min-w-0 scroll-mt-4 space-y-6">
+          <Panel title="Override" icon={SlidersHorizontal} description="Each change saves immediately and is logged in Activity.">
             <OverrideControls complaintId={c.id} status={c.status} category={c.category} departmentId={c.departmentId} departments={orgDepartments} />
+          </Panel>
+          <Panel title="Merge" icon={Link2} description={c.duplicateOf ? "Merged as a duplicate of another report." : "Fold this into a nearby report of the same issue."}>
             <MergeControls complaintId={c.id} duplicateOf={c.duplicateOf} related={related} />
-          </Section>
-          <Section title="Activity">
+          </Panel>
+          <Panel title={<>Activity <Count n={audit.length} /></>} icon={History}>
             <AuditTimeline entries={audit} departments={orgDepartments} />
-          </Section>
+          </Panel>
         </aside>
       </div>
     </div>
   );
+}
+
+function Count({ n }: { n: number }) {
+  return <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">{n}</span>;
 }

@@ -9,7 +9,7 @@ import { api } from "@/lib/api";
 import { STATUS_LABELS } from "@/lib/labels";
 import { STATUSES, type Status } from "@/types";
 
-/** Sticky bar shown while rows are selected: apply one status to all of them, or clear the selection. */
+/** Floating bar pinned to the bottom of the viewport while rows are selected: apply one status to all, or clear. */
 export function BulkActionsBar({ ids, onClear }: { ids: string[]; onClear: () => void }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>("in_progress");
@@ -30,11 +30,17 @@ export function BulkActionsBar({ ids, onClear }: { ids: string[]; onClear: () =>
   };
 
   return (
-    <div role="region" aria-label="Bulk actions" className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border bg-foreground px-3 py-2 text-sm text-background shadow-lg">
-      <span className="font-medium">{ids.length} selected</span>
-      <label className="ml-auto flex items-center gap-2">
-        Set status
+    <div
+      role="region"
+      aria-label="Bulk actions"
+      className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-xl flex-wrap items-center gap-2 overflow-hidden rounded-xl bg-foreground py-2 pr-2 pl-4 text-sm text-background shadow-[0_16px_40px_-12px_rgb(31_35_40/0.6)] ring-1 ring-background/10"
+    >
+      <span className="absolute inset-y-0 left-0 w-1.5 bg-signal" aria-hidden />
+      <span className="font-semibold tabular-nums">{ids.length} selected</span>
+      <label className="ml-auto flex items-center gap-2 text-background/80">
+        <span className="hidden sm:inline">Set status</span>
         <select
+          aria-label="New status"
           value={status}
           onChange={(e) => setStatus(e.target.value as Status)}
           disabled={saving}

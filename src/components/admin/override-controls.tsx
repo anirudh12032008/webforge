@@ -38,7 +38,7 @@ export function OverrideControls({ complaintId, status, category, departmentId, 
     }
   };
 
-  const field = "h-9 w-full rounded-lg border bg-background px-2 text-sm disabled:opacity-60";
+  const field = "h-9 w-full rounded-lg border bg-background px-2 text-sm transition-colors hover:border-foreground/40 disabled:opacity-60";
   const label = (name: keyof PatchComplaintInput, text: string) => (
     <span className="flex items-center gap-2 text-sm font-medium">
       {text}
@@ -71,7 +71,7 @@ export function OverrideControls({ complaintId, status, category, departmentId, 
         <select className={field} value={category} disabled={saving !== null} onChange={(e) => save({ category: e.target.value as Category })}>
           {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
         </select>
-        <span className="block text-xs text-muted-foreground">Changing the category overrides the AI and is recorded below.</span>
+        <span className="block text-xs text-muted-foreground">Changing the category overrides the AI and is recorded in Activity.</span>
       </label>
     </div>
   );

@@ -30,8 +30,8 @@ export function ExplainPriority({ complaintId }: { complaintId: string }) {
     const { explanation, resources, rank } = state.data;
     return (
       <div className="space-y-3 rounded-lg border-l-4 border-primary bg-accent p-4 text-sm" aria-live="polite">
-        <p className="flex items-center gap-2 font-medium">
-          <Sparkles className="size-4 text-primary" aria-hidden /> Why this is #{rank}
+        <p className="flex items-center gap-2 font-semibold">
+          <Sparkles className="size-4 text-primary" aria-hidden /> Why this is <span className="rounded-md bg-foreground px-1.5 font-heading text-background tabular-nums">#{rank}</span> in the queue
         </p>
         <p>{explanation}</p>
         <p className="flex gap-2">
@@ -47,9 +47,12 @@ export function ExplainPriority({ complaintId }: { complaintId: string }) {
 
   return (
     <div className="space-y-3">
-      <Button type="button" variant="outline" onClick={load} disabled={state.kind === "loading"}>
-        <Sparkles aria-hidden /> {state.kind === "loading" ? "Asking the AI…" : "Why is this ranked here?"}
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-sm text-sm text-muted-foreground">Ask the AI why this complaint sits at its place in the queue and which crew to send.</p>
+        <Button type="button" variant="outline" size="lg" onClick={load} disabled={state.kind === "loading"}>
+          <Sparkles aria-hidden /> {state.kind === "loading" ? "Asking the AI…" : state.kind === "error" ? "Try again" : "Why this rank?"}
+        </Button>
+      </div>
       {state.kind === "loading" && (
         <div className="space-y-2" aria-busy>
           <Skeleton className="h-4 w-full" />
@@ -57,7 +60,11 @@ export function ExplainPriority({ complaintId }: { complaintId: string }) {
           <Skeleton className="h-4 w-2/3" />
         </div>
       )}
-      {state.kind === "error" && <p className="text-sm text-destructive">{state.message}</p>}
+      {state.kind === "error" && (
+        <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          {state.message}
+        </p>
+      )}
     </div>
   );
 }

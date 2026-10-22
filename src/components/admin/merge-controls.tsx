@@ -4,6 +4,7 @@ import { Link2, Loader2, Unlink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/admin/console";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
@@ -30,13 +31,13 @@ export function MergeControls({ complaintId, duplicateOf, related }: Props) {
 
   if (duplicateOf) {
     return (
-      <Button variant="outline" disabled={busy} onClick={() => run(() => api.unmergeComplaint(complaintId), "Unmerged")}>
+      <Button variant="outline" size="lg" disabled={busy} onClick={() => run(() => api.unmergeComplaint(complaintId), "Unmerged")}>
         {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Unlink aria-hidden />}
         Unmerge from #{duplicateOf.slice(0, 8)}
       </Button>
     );
   }
-  if (related.length === 0) return <p className="text-sm text-muted-foreground">No nearby reports to merge with.</p>;
+  if (related.length === 0) return <EmptyState icon={Link2}>No nearby reports to merge with.</EmptyState>;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -45,11 +46,11 @@ export function MergeControls({ complaintId, duplicateOf, related }: Props) {
         value={target}
         onChange={(e) => setTarget(e.target.value)}
         disabled={busy}
-        className="h-8 min-w-0 flex-1 rounded-lg border bg-background px-2 text-sm"
+        className="h-9 min-w-0 flex-1 basis-48 rounded-lg border bg-background px-2 text-sm disabled:opacity-60"
       >
         {related.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
       </select>
-      <Button variant="outline" disabled={busy || !target} onClick={() => run(() => api.mergeComplaint(complaintId, target), "Merged as a duplicate")}>
+      <Button variant="outline" size="lg" disabled={busy || !target} onClick={() => run(() => api.mergeComplaint(complaintId, target), "Merged as a duplicate")}>
         {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Link2 aria-hidden />}
         Merge into
       </Button>
