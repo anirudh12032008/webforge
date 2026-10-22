@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { pick } from "@/lib/i18n";
-import { categoryLabels } from "@/lib/i18n/messages/labels";
+import { categoryLabels, departmentName } from "@/lib/i18n/messages/labels";
 import { MY_REPORTS } from "@/lib/i18n/messages/my-reports";
 import { getRememberedReportIds } from "@/lib/my-reports";
 import type { Locale, ReporterView } from "@/types";
@@ -39,7 +39,7 @@ function ReportCard({ report, locale, t }: { report: ReporterView; locale: Local
         {report.duplicateOf
           ? t.merged(report.duplicateOf.slice(0, 8))
           : report.departmentName
-            ? t.handledBy(report.departmentName)
+            ? t.handledBy(departmentName(locale, report.departmentName))
             : t.awaitingTeam}
       </p>
     </article>

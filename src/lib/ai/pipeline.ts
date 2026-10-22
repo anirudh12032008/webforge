@@ -10,7 +10,7 @@ import {
 } from "@/db/queries";
 import type { ComplaintRow } from "@/db/schema";
 import type { CreateComplaintInput } from "@/lib/validation";
-import type { Analysis, Complaint } from "@/types";
+import type { Analysis, Complaint, Locale } from "@/types";
 import { classifyComplaint } from "./classify";
 import { findDuplicates } from "./dedup";
 import { embedText } from "./embed";
@@ -37,7 +37,7 @@ async function reprioritize(row: ComplaintRow): Promise<void> {
  * audit. The row is stored first so a report is never lost; AI steps degrade gracefully (fallback
  * category, skipped dedup). Only an org that doesn't cover the location is rejected.
  */
-export async function submitComplaint(input: CreateComplaintInput): Promise<{ complaint: Complaint; analysis: Analysis }> {
+export async function submitComplaint(input: CreateComplaintInput, locale: Locale = "en"): Promise<{ complaint: Complaint; analysis: Analysis }> {
   const eligible = await findEligibleOrgs(input.location);
   const org = input.orgSlug ? eligible.find((o) => o.slug === input.orgSlug) : eligible[0];
   if (!org) throw new OrgNotEligibleError(input.orgSlug ? `${input.orgSlug} doesn't cover this location` : "No organisation covers this location");
@@ -70,7 +70,7 @@ export async function submitComplaint(input: CreateComplaintInput): Promise<{ co
     relatedCount,
     createdAt: row.createdAt,
   });
-  const routing = chooseDepartment(classification, await getDepartmentsWithLoad(org.id));
+  const routing = chooseDepartment(classification, await getDepartmentsWithLoad(org.id), locale);
 
   const analysisFields = {
     title,

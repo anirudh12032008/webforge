@@ -28,6 +28,22 @@ const FACTOR_HI: Record<PriorityFactor["factor"], string> = {
   community: "प्रभावित लोग",
 };
 
+const ORG_HI: Record<string, string> = {
+  bmc: "भोपाल नगर निगम",
+  manit: "मैनिट भोपाल कैंपस",
+};
+
+const DEPARTMENT_HI: Record<string, string> = {
+  "MANIT Estate Office — Civil": "मैनिट एस्टेट ऑफ़िस — सिविल",
+  "MANIT Electrical Maintenance": "मैनिट विद्युत रखरखाव",
+  "MANIT Housekeeping": "मैनिट हाउसकीपिंग",
+  "BMC Roads & Public Works": "बीएमसी सड़क एवं लोक निर्माण",
+  "BMC Solid Waste Management": "बीएमसी ठोस अपशिष्ट प्रबंधन",
+  "BMC Water Supply": "बीएमसी जल आपूर्ति",
+  "BMC Street Lighting": "बीएमसी स्ट्रीट लाइटिंग",
+  "BMC Health & Sanitation": "बीएमसी स्वास्थ्य एवं स्वच्छता",
+};
+
 /** Category / status / priority-factor labels in the reader's language (admin pages keep English). */
 export const categoryLabels = (locale: Locale) => (locale === "hi" ? CATEGORY_HI : CATEGORY_LABELS);
 export const statusLabels = (locale: Locale) => (locale === "hi" ? STATUS_HI : STATUS_LABELS);
@@ -35,3 +51,7 @@ export const factorLabels = (locale: Locale) => (locale === "hi" ? FACTOR_HI : F
 
 /** Locale tag for dates shown to citizens. */
 export const DATE_LOCALE: Record<Locale, string> = { en: "en-IN", hi: "hi-IN" };
+
+/** Org / department names in the reader's language; unknown names (new seeds) stay as stored. */
+export const orgName = (locale: Locale, org: { slug: string; name: string }) => (locale === "hi" ? ORG_HI[org.slug] : undefined) ?? org.name;
+export const departmentName = (locale: Locale, name: string) => (locale === "hi" ? DEPARTMENT_HI[name] : undefined) ?? name;

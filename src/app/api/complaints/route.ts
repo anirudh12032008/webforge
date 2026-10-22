@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listComplaints } from "@/db/dashboard";
 import { OrgNotEligibleError, submitComplaint } from "@/lib/ai/pipeline";
+import { getLocale } from "@/lib/i18n/server";
 import { errorResponse, validationError } from "@/lib/http";
 import { createComplaintSchema, listComplaintsQuerySchema } from "@/lib/validation";
 
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return validationError(parsed.error);
 
   try {
-    return NextResponse.json(await submitComplaint(parsed.data), { status: 201 });
+    return NextResponse.json(await submitComplaint(parsed.data, await getLocale()), { status: 201 });
   } catch (err) {
     if (err instanceof OrgNotEligibleError) return errorResponse(err.message, 422);
     console.error("[POST /api/complaints]", err);
