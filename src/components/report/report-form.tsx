@@ -1,14 +1,20 @@
 "use client";
 
-import { Camera, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/map/location-picker";
 import { AnalysisCard } from "@/components/report/analysis-card";
+import { OrgChoice } from "@/components/report/org-choice";
+import { PhotoField } from "@/components/report/photo-field";
+import { VoiceInputButton } from "@/components/report/voice-input-button";
+import { useLocale } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError, type SubmitResponse } from "@/lib/api";
+import { pick, SPEECH_LANG } from "@/lib/i18n";
+import { REPORT } from "@/lib/i18n/messages/report";
 import { compressImage } from "@/lib/image";
 import { getRememberedContact, rememberReport } from "@/lib/my-reports";
 import type { LngLat, Org } from "@/types";
@@ -16,19 +22,25 @@ import type { LngLat, Org } from "@/types";
 type Photo = { blob: Blob; preview: string };
 type Phase = "idle" | "uploading" | "analysing";
 
+/** Same rule as the server schema: a photo, or at least this many characters of description. */
+const MIN_DESCRIPTION = 10;
+
 const text = (data: FormData, key: string) => String(data.get(key) ?? "").trim();
 
 function FieldError({ messages }: { messages?: string[] }) {
   return messages?.length ? <p className="text-sm text-destructive">{messages[0]}</p> : null;
 }
 
-/** Citizen report form: pin, org choice, details, photo → AI pipeline → result card. */
+/** Citizen report form: pin, org choice, photo and/or description (typed or spoken) → AI pipeline → result card. */
 export function ReportForm() {
+  const locale = useLocale();
+  const t = pick(REPORT, locale);
   const [location, setLocation] = useState<LngLat | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [orgs, setOrgs] = useState<Org[] | null>(null);
   const [orgSlug, setOrgSlug] = useState("");
   const [photo, setPhoto] = useState<Photo | null>(null);
+  const [description, setDescription] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<SubmitResponse | null>(null);
@@ -58,13 +70,17 @@ export function ReportForm() {
       const blob = await compressImage(file);
       setPhoto({ blob, preview: URL.createObjectURL(blob) });
     } catch {
-      toast.error("Couldn't read that photo. Try a JPEG or PNG.");
+      toast.error(t.photoReadError);
     }
   };
 
+  const appendSpeech = (spoken: string) => setDescription((d) => (d.trim() ? `${d.trimEnd()} ${spoken}` : spoken));
+  const hasContent = photo !== null || description.trim().length >= MIN_DESCRIPTION;
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!location) return void toast.error("Pin where the problem is on the map first.");
+    if (!location) return void toast.error(t.pinFirst);
+    if (!hasContent) return void toast.error(t.needPhotoOrText);
     const data = new FormData(event.currentTarget);
     setErrors({});
     try {
@@ -72,41 +88,41 @@ export function ReportForm() {
       if (photo) {
         setPhase("uploading");
         photoUrl = await api.uploadPhoto(photo.blob, "photo.jpg").catch((err: Error) => {
-          toast.warning(`${err.message} Sending your report without the photo.`);
+          toast.warning(t.uploadFailed(err.message));
           return null;
         });
       }
       setPhase("analysing");
       const reporterContact = text(data, "contact") || null;
       const response = await api.submitComplaint({
-        title: text(data, "title"),
-        description: text(data, "description"),
+        title: text(data, "title") || undefined,
+        description: description.trim() || undefined,
         photoUrl,
         location,
         locationLabel: address,
         orgSlug: orgSlug || undefined,
         reporterName: text(data, "name") || null,
         reporterContact,
+        locale,
       });
       rememberReport(response.complaint.id, reporterContact);
       setResult(response);
-      toast.success("Report submitted");
+      toast.success(t.submitted);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
-      toast.error(err instanceof Error ? err.message : "Couldn't submit the report.");
+      toast.error(err instanceof Error ? err.message : t.submitError);
     } finally {
       setPhase("idle");
     }
   }
 
   if (result) {
+    const reset = () => (setResult(null), setPhoto(null), setDescription(""), setLocation(null), setOrgs(null));
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         <AnalysisCard complaint={result.complaint} analysis={result.analysis} />
-        <Button variant="outline" onClick={() => (setResult(null), setPhoto(null), setLocation(null), setOrgs(null))}>
-          Report another issue
-        </Button>
+        <Button variant="outline" onClick={reset}>{t.another}</Button>
       </div>
     );
   }
@@ -114,80 +130,61 @@ export function ReportForm() {
   const busy = phase !== "idle";
   return (
     <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[3fr_2fr]" noValidate>
-      <fieldset className="space-y-3">
-        <legend className="mb-3 font-medium">Where is it?</legend>
+      <fieldset className="min-w-0 space-y-3">
+        <legend className="mb-3 font-medium">{t.whereLegend}</legend>
         <LocationPicker value={location} onPick={onPick} onAddress={setAddress} />
-        {location && <p className="text-sm text-muted-foreground">{address ?? "Pinned. Looking up the address…"}</p>}
+        {location && <p className="text-sm text-muted-foreground">{address ?? t.lookingUpAddress}</p>}
         <FieldError messages={errors.location} />
-
-        {orgs && orgs.length > 1 && (
-          <div className="space-y-2 pt-2">
-            <p className="font-medium">Who should fix it?</p>
-            {orgs.map((org) => (
-              <label key={org.slug} className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-checked:border-primary has-checked:bg-accent">
-                <input type="radio" name="org" value={org.slug} checked={orgSlug === org.slug} onChange={() => setOrgSlug(org.slug)} className="accent-primary" />
-                <span>
-                  {org.name}
-                  <span className="block text-sm text-muted-foreground">
-                    {org.kind === "campus" ? "Handled by the campus maintenance office" : "Handled by the municipal corporation"}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-        {orgs?.length === 1 && <p className="text-sm">This goes to {orgs[0].name}.</p>}
-        {orgs?.length === 0 && <p className="text-sm text-destructive">We can&apos;t take reports for this location yet.</p>}
+        <OrgChoice orgs={orgs} value={orgSlug} onChange={setOrgSlug} t={t} />
       </fieldset>
 
-      <fieldset className="space-y-4" disabled={busy}>
-        <legend className="mb-3 font-medium">What&apos;s wrong?</legend>
+      <fieldset className="min-w-0 space-y-4" disabled={busy}>
+        <legend className="mb-3 font-medium">{t.whatLegend}</legend>
+        <PhotoField preview={photo?.preview ?? null} onSelect={(f) => void onPhoto(f)} onRemove={() => setPhoto(null)} t={t} />
         <div className="space-y-1.5">
-          <label htmlFor="title" className="text-sm font-medium">Short title</label>
-          <Input id="title" name="title" required minLength={3} maxLength={120} placeholder="Open manhole near Hostel 7 gate" />
-          <FieldError messages={errors.title} />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="description" className="text-sm font-medium">Details</label>
-          <Textarea id="description" name="description" required minLength={10} maxLength={2000} rows={4} placeholder="What you saw, how big it is, since when, anyone hurt?" />
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="description" className="text-sm font-medium">{t.detailsLabel}</label>
+            <VoiceInputButton
+              lang={SPEECH_LANG[locale]}
+              onFinal={appendSpeech}
+              labels={{ start: t.voiceStart, stop: t.voiceStop, denied: t.voiceDenied, error: t.voiceError }}
+            />
+          </div>
+          <Textarea
+            id="description"
+            name="description"
+            maxLength={2000}
+            rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t.detailsPlaceholder}
+            aria-describedby="content-hint"
+          />
           <FieldError messages={errors.description} />
+          {!hasContent && <p id="content-hint" className="text-sm text-muted-foreground">{t.needPhotoOrText}</p>}
         </div>
-
         <div className="space-y-1.5">
-          <p className="text-sm font-medium">Photo (optional, helps the AI judge severity)</p>
-          {photo ? (
-            <div className="relative w-fit">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview, not optimisable */}
-              <img src={photo.preview} alt="Selected photo" className="max-h-48 rounded-lg border object-cover" />
-              <Button type="button" size="icon-sm" variant="secondary" className="absolute top-2 right-2" onClick={() => setPhoto(null)} aria-label="Remove photo">
-                <X />
-              </Button>
-            </div>
-          ) : (
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground hover:bg-muted">
-              <Camera className="size-4" aria-hidden />
-              Take or choose a photo
-              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={(e) => void onPhoto(e.target.files?.[0])} />
-            </label>
-          )}
+          <label htmlFor="title" className="text-sm font-medium">{t.titleLabel}</label>
+          <Input id="title" name="title" maxLength={120} placeholder={t.titlePlaceholder} />
+          <FieldError messages={errors.title} />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label htmlFor="name" className="text-sm font-medium">Your name (optional)</label>
+            <label htmlFor="name" className="text-sm font-medium">{t.nameLabel}</label>
             <Input id="name" name="name" maxLength={80} autoComplete="name" />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="contact" className="text-sm font-medium">Phone or email (optional)</label>
+            <label htmlFor="contact" className="text-sm font-medium">{t.contactLabel}</label>
             <Input id="contact" name="contact" maxLength={120} value={contact} onChange={(e) => setContact(e.target.value)} />
           </div>
         </div>
 
-        <Button type="submit" size="lg" className="w-full" disabled={busy || !location}>
+        <Button type="submit" size="lg" className="w-full" disabled={busy || !location || !hasContent}>
           {busy && <Loader2 className="animate-spin" aria-hidden />}
-          {phase === "uploading" ? "Uploading photo…" : phase === "analysing" ? "AI is reviewing your report…" : "Submit report"}
+          {phase === "uploading" ? t.uploading : phase === "analysing" ? t.analysing : t.submit}
         </Button>
-        {!location && <p className="text-center text-sm text-muted-foreground">Pin the location on the map to submit.</p>}
+        {!location && <p className="text-center text-sm text-muted-foreground">{t.pinToSubmit}</p>}
       </fieldset>
     </form>
   );

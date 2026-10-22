@@ -3,39 +3,44 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { StatusTimeline } from "@/components/report/status-timeline";
+import { useLocale } from "@/components/shared/locale-provider";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import { CATEGORY_LABELS } from "@/lib/labels";
+import { pick } from "@/lib/i18n";
+import { categoryLabels } from "@/lib/i18n/messages/labels";
+import { MY_REPORTS } from "@/lib/i18n/messages/my-reports";
 import { getRememberedReportIds } from "@/lib/my-reports";
-import type { ReporterView } from "@/types";
+import type { Locale, ReporterView } from "@/types";
+
+type Copy = (typeof MY_REPORTS)["en"];
 
 type State = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; reports: ReporterView[] };
 
-function ReportCard({ report }: { report: ReporterView }) {
+function ReportCard({ report, locale, t }: { report: ReporterView; locale: Locale; t: Copy }) {
   return (
     <article className="space-y-4 rounded-xl border bg-card p-5">
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="font-semibold">{report.title}</h2>
           <p className="text-sm text-muted-foreground">
-            {CATEGORY_LABELS[report.category]}
+            {categoryLabels(locale)[report.category]}
             {report.locationLabel ? `, ${report.locationLabel}` : ""}
           </p>
         </div>
         <span className="text-sm text-muted-foreground">#{report.id.slice(0, 8)}</span>
       </header>
       {report.status === "rejected" ? (
-        <p className="rounded-md bg-muted p-3 text-sm">This report was closed without action. It may have been outside the team&apos;s responsibility.</p>
+        <p className="rounded-md bg-muted p-3 text-sm">{t.rejected}</p>
       ) : (
-        <StatusTimeline status={report.status} history={report.history} />
+        <StatusTimeline status={report.status} history={report.history} locale={locale} t={t} />
       )}
       <p className="text-sm text-muted-foreground">
         {report.duplicateOf
-          ? `Merged with an earlier report of the same issue (#${report.duplicateOf.slice(0, 8)}), which moved it up the queue.`
+          ? t.merged(report.duplicateOf.slice(0, 8))
           : report.departmentName
-            ? `Handled by ${report.departmentName}.`
-            : "Waiting for a team to be assigned."}
+            ? t.handledBy(report.departmentName)
+            : t.awaitingTeam}
       </p>
     </article>
   );
@@ -43,6 +48,8 @@ function ReportCard({ report }: { report: ReporterView }) {
 
 /** Lists the reports this device submitted, read via ids saved in localStorage at submit time. */
 export function MyReportsList() {
+  const locale = useLocale();
+  const t = pick(MY_REPORTS, locale);
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
@@ -62,19 +69,19 @@ export function MyReportsList() {
     );
   }
   if (state.kind === "error") {
-    return <p className="rounded-lg border p-4 text-sm">Couldn&apos;t load your reports: {state.message}. Refresh to try again.</p>;
+    return <p className="rounded-lg border p-4 text-sm">{t.loadError(state.message)}</p>;
   }
   if (state.reports.length === 0) {
     return (
       <div className="space-y-4 rounded-xl border border-dashed p-8 text-center">
-        <p className="text-muted-foreground">You haven&apos;t reported anything from this device yet.</p>
-        <Link href="/report" className={buttonVariants()}>Report an issue</Link>
+        <p className="text-muted-foreground">{t.empty}</p>
+        <Link href="/report" className={buttonVariants()}>{t.reportCta}</Link>
       </div>
     );
   }
   return (
     <div className="space-y-4">
-      {state.reports.map((r) => <ReportCard key={r.id} report={r} />)}
+      {state.reports.map((r) => <ReportCard key={r.id} report={r} locale={locale} t={t} />)}
     </div>
   );
 }

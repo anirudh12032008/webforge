@@ -1,36 +1,31 @@
 import Link from "next/link";
 import { MapPin } from "lucide-react";
+import { LanguageSwitch } from "@/components/shared/language-switch";
+import { pick } from "@/lib/i18n";
+import { NAV } from "@/lib/i18n/messages/nav";
+import { getLocale } from "@/lib/i18n/server";
 
-const CITIZEN_LINKS = [
-  { href: "/report", label: "Report" },
-  { href: "/my-reports", label: "My Reports" },
-];
-const ADMIN_LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/analytics", label: "Analytics" },
-];
+const linkClass = "whitespace-nowrap text-muted-foreground hover:text-foreground";
 
-export function TopNav() {
+export async function TopNav() {
+  const t = pick(NAV, await getLocale());
   return (
     <header className="border-b bg-background">
-      <nav className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 text-sm">
+      <nav className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-sm">
         <Link href="/" className="flex items-center gap-1.5 font-semibold">
           <MapPin className="size-4" aria-hidden />
           CampusSense
         </Link>
-        <div className="ml-auto flex items-center gap-4">
-          {CITIZEN_LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="text-muted-foreground hover:text-foreground">
-              {l.label}
-            </Link>
-          ))}
+        <div className="order-last flex w-full flex-wrap items-center gap-x-4 gap-y-1 sm:order-none sm:ml-auto sm:w-auto">
+          <Link href="/report" className={linkClass}>{t.report}</Link>
+          <Link href="/my-reports" className={linkClass}>{t.myReports}</Link>
           <span className="text-muted-foreground/50" aria-hidden>|</span>
-          <span className="hidden text-xs uppercase tracking-wide text-muted-foreground sm:inline">Admin</span>
-          {ADMIN_LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="text-muted-foreground hover:text-foreground">
-              {l.label}
-            </Link>
-          ))}
+          <span className="hidden text-xs text-muted-foreground sm:inline">{t.admin}</span>
+          <Link href="/dashboard" className={linkClass}>{t.dashboard}</Link>
+          <Link href="/analytics" className={linkClass}>{t.analytics}</Link>
+        </div>
+        <div className="ml-auto sm:ml-0">
+          <LanguageSwitch label={t.language} />
         </div>
       </nav>
     </header>

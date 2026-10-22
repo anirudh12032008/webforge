@@ -4,7 +4,10 @@ import { AdvancedMarker, APIProvider, Map, useMap, useMapsLibrary, type MapMouse
 import { LocateFixed } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLocale } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
+import { pick } from "@/lib/i18n";
+import { REPORT } from "@/lib/i18n/messages/report";
 import type { LngLat } from "@/types";
 
 /** Default view: MANIT Bhopal, which sits inside the city so both orgs are one tap away. */
@@ -28,13 +31,14 @@ function currentPosition(): Promise<LngLat> {
 }
 
 function LocateButton({ onLocated }: { onLocated: (location: LngLat) => void }) {
+  const t = pick(REPORT, useLocale());
   const [locating, setLocating] = useState(false);
   const locate = async () => {
     setLocating(true);
     try {
       onLocated(await currentPosition());
     } catch {
-      toast.error("Couldn't get your location. Allow location access or tap the map instead.");
+      toast.error(t.locationError);
     } finally {
       setLocating(false);
     }
@@ -42,7 +46,7 @@ function LocateButton({ onLocated }: { onLocated: (location: LngLat) => void }) 
   return (
     <Button type="button" variant="outline" onClick={locate} disabled={locating}>
       <LocateFixed aria-hidden />
-      {locating ? "Finding you…" : "Use my location"}
+      {locating ? t.finding : t.useMyLocation}
     </Button>
   );
 }
@@ -99,15 +103,14 @@ function PickerMap({ value, onPick, onAddress }: Props) {
  * it degrades to GPS-only so reporting still works in local dev or if the key is misconfigured.
  */
 export function LocationPicker(props: Props) {
+  const t = pick(REPORT, useLocale());
   if (!MAPS_KEY) {
     return (
       <div className="space-y-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-        <p>The map isn&apos;t available right now. Use your current location instead.</p>
+        <p>{t.mapUnavailable}</p>
         <LocateButton onLocated={(location) => (props.onPick(location), props.onAddress(null))} />
         {props.value && (
-          <p className="text-foreground">
-            Pinned at {props.value.lat.toFixed(5)}, {props.value.lng.toFixed(5)}
-          </p>
+          <p className="text-foreground">{t.pinnedAt(props.value.lat.toFixed(5), props.value.lng.toFixed(5))}</p>
         )}
       </div>
     );
