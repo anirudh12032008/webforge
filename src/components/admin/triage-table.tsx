@@ -4,6 +4,8 @@ import { createColumnHelper, flexRender, tableFeatures, useTable } from "@tansta
 import { ArrowDownWideNarrow, Link2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { BulkActionsBar } from "@/components/admin/bulk-actions-bar";
 import { CATEGORY_LABELS, STATUS_LABELS, priorityBand, waitingFor } from "@/lib/labels";
 import type { ListComplaintsQuery } from "@/lib/validation";
 import { CATEGORIES, STATUSES, type ComplaintListItem } from "@/types";
@@ -50,12 +52,60 @@ function FilterSelect({ name, value, options, labels, onChange }: { name: string
   );
 }
 
+type QueueTableProps = {
+  items: ComplaintListItem[];
+  selected: Set<string>;
+  allSelected: boolean;
+  toggle: (id: string) => void;
+  toggleAll: () => void;
+};
+
+/**
+ * The TanStack table itself. v9's useTable keeps its first `data`, so the parent keys this component
+ * by row content: a router.refresh() or filter change with new rows remounts it with fresh data.
+ */
+function QueueTable({ items, selected, allSelected, toggle, toggleAll }: QueueTableProps) {
+  const table = useTable({ features, columns, data: items, getRowId: (row) => row.id });
+  return (
+    <table className="w-full text-left">
+      <thead className="border-b text-sm text-muted-foreground">
+        {table.getHeaderGroups().map((group) => (
+          <tr key={group.id}>
+            <th className="w-10 px-3 py-2">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all complaints on this page" className="size-4 accent-primary" />
+            </th>
+            {group.headers.map((h) => <th key={h.id} className="px-3 py-2 font-medium whitespace-nowrap">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}
+          </tr>
+        ))}
+      </thead>
+      <tbody>
+        {table.getRowModel().rows.map((row) => (
+          <tr key={row.id} className={`border-b last:border-0 hover:bg-muted/50 ${selected.has(row.id) ? "bg-accent" : ""}`}>
+            <td className="px-3 py-2.5 align-top">
+              <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label={`Select ${row.original.title}`} className="size-4 accent-primary" />
+            </td>
+            {row.getAllCells().map((cell) => <td key={cell.id} className="px-3 py-2.5 align-top whitespace-nowrap">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 /** Triage queue. Filters, sort and page live in the URL so views are shareable and survive refresh. */
 export function TriageTable({ items, total, query }: { items: ComplaintListItem[]; total: number; query: ListComplaintsQuery }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const table = useTable({ features, columns, data: items, getRowId: (row) => row.id });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const allSelected = items.length > 0 && items.every((i) => selected.has(i.id));
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)));
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
@@ -81,23 +131,10 @@ export function TriageTable({ items, total, query }: { items: ComplaintListItem[
         </label>
       </div>
 
+      {selected.size > 0 && <BulkActionsBar ids={[...selected]} onClear={() => setSelected(new Set())} />}
+
       <div className="overflow-x-auto rounded-xl border bg-card">
-        <table className="w-full text-left">
-          <thead className="border-b text-sm text-muted-foreground">
-            {table.getHeaderGroups().map((group) => (
-              <tr key={group.id}>
-                {group.headers.map((h) => <th key={h.id} className="px-3 py-2 font-medium whitespace-nowrap">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b last:border-0 hover:bg-muted/50">
-                {row.getAllCells().map((cell) => <td key={cell.id} className="px-3 py-2.5 align-top whitespace-nowrap">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <QueueTable key={items.map((i) => `${i.id}:${i.status}:${i.priorityScore}`).join("|")} items={items} selected={selected} allSelected={allSelected} toggle={toggle} toggleAll={toggleAll} />
         {items.length === 0 && <p className="p-8 text-center text-muted-foreground">No complaints match these filters.</p>}
       </div>
 
