@@ -30,3 +30,11 @@ export const geographyPoint = customType<{ data: LngLat; driverData: string }>({
   toDriver: toEwkt,
   fromDriver: parseWkbPoint,
 });
+
+/**
+ * geography(Polygon, 4326) column for org boundaries. Written as EWKT
+ * ("SRID=4326;POLYGON((lng lat, ...))"); only used inside SQL (ST_Covers), so reads stay raw hex.
+ */
+export const geographyPolygon = customType<{ data: string; driverData: string }>({
+  dataType: () => "geography(Polygon, 4326)",
+});

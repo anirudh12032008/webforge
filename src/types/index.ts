@@ -23,8 +23,15 @@ export type PriorityFactor = {
 
 export type LngLat = { lng: number; lat: number };
 
+export const ORG_KINDS = ["city", "campus"] as const;
+export type OrgKind = (typeof ORG_KINDS)[number];
+
+/** A body that handles complaints (e.g. Bhopal Municipal Corporation, MANIT campus). */
+export type Org = { id: number; slug: string; name: string; kind: OrgKind };
+
 export type Department = {
   id: number;
+  orgId: number;
   name: string;
   slug: string;
   categories: Category[];
@@ -48,6 +55,7 @@ export type Complaint = {
   priorityScore: number;
   priorityBreakdown: PriorityFactor[] | null;
   status: Status;
+  orgId: number;
   departmentId: number | null;
   clusterId: number | null;
   duplicateOf: string | null;

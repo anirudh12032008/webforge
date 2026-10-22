@@ -16,16 +16,33 @@ import {
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
-import { CATEGORIES, STATUSES, type PriorityFactor } from "@/types";
-import { geographyPoint } from "./geography";
+import { CATEGORIES, ORG_KINDS, STATUSES, type PriorityFactor } from "@/types";
+import { geographyPoint, geographyPolygon } from "./geography";
 
 export const categoryEnum = pgEnum("category", CATEGORIES);
 export const statusEnum = pgEnum("status", STATUSES);
+export const orgKindEnum = pgEnum("org_kind", ORG_KINDS);
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
 
+/** A body that handles complaints. A null boundary means it accepts reports from anywhere (the city). */
+export const orgs = pgTable(
+  "orgs",
+  {
+    id: serial("id").primaryKey(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    kind: orgKindEnum("kind").notNull(),
+    boundary: geographyPolygon("boundary"),
+  },
+  (t) => [index("orgs_boundary_gist").using("gist", t.boundary)],
+);
+
 export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
+  orgId: integer("org_id")
+    .notNull()
+    .references(() => orgs.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   categories: categoryEnum("categories").array().notNull().default(sql`'{}'`),
@@ -50,6 +67,9 @@ export const complaints = pgTable(
     priorityScore: real("priority_score").notNull().default(0),
     priorityBreakdown: jsonb("priority_breakdown").$type<PriorityFactor[]>(),
     status: statusEnum("status").notNull().default("new"),
+    orgId: integer("org_id")
+      .notNull()
+      .references(() => orgs.id),
     departmentId: integer("department_id").references(() => departments.id, { onDelete: "set null" }),
     clusterId: integer("cluster_id"),
     duplicateOf: uuid("duplicate_of").references((): AnyPgColumn => complaints.id, { onDelete: "set null" }),
@@ -65,6 +85,7 @@ export const complaints = pgTable(
     index("complaints_location_gist").using("gist", t.location),
     index("complaints_embedding_hnsw").using("hnsw", t.embedding.op("vector_cosine_ops")),
     index("complaints_status_created_idx").on(t.status, t.createdAt),
+    index("complaints_org_status_idx").on(t.orgId, t.status),
     index("complaints_reporter_contact_idx").on(t.reporterContact),
     check("complaints_severity_range", sql`${t.severity} BETWEEN 1 AND 5`),
     check("complaints_safety_risk_range", sql`${t.safetyRisk} BETWEEN 1 AND 5`),
@@ -90,6 +111,7 @@ export const auditLog = pgTable(
   (t) => [index("audit_log_complaint_created_idx").on(t.complaintId, t.createdAt)],
 );
 
+export type OrgRow = InferSelectModel<typeof orgs>;
 export type DepartmentRow = InferSelectModel<typeof departments>;
 export type ComplaintRow = InferSelectModel<typeof complaints>;
 export type NewComplaintRow = InferInsertModel<typeof complaints>;

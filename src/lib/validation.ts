@@ -14,6 +14,8 @@ export const createComplaintSchema = z.object({
   description: z.string().trim().min(10).max(2000),
   photoUrl: z.url().nullish(),
   location: lngLat,
+  /** Org the reporter chose; must cover the location. Omitted → most specific org that does. */
+  orgSlug: z.string().trim().min(1).max(60).optional(),
   locationLabel: optionalText(200),
   reporterName: optionalText(80),
   reporterContact: optionalText(120),
@@ -38,6 +40,7 @@ const bbox = z.string().transform((value, ctx) => {
 export const listComplaintsQuerySchema = z.object({
   status: z.enum(STATUSES).optional(),
   category: z.enum(CATEGORIES).optional(),
+  org: z.string().trim().min(1).max(60).optional(),
   department: z.coerce.number().int().positive().optional(),
   bbox: bbox.optional(),
   sort: z.enum(["priority", "newest", "oldest"]).default("priority"),

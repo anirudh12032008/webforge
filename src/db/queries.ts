@@ -1,8 +1,8 @@
-import { and, asc, cosineDistance, eq, gte, ne, sql } from "drizzle-orm";
-import type { AuditEntry, Complaint, LngLat } from "@/types";
+import { and, asc, cosineDistance, eq, gte, isNull, ne, or, sql } from "drizzle-orm";
+import type { AuditEntry, Complaint, LngLat, Org } from "@/types";
 import { db } from "./client";
 import { toEwkt } from "./geography";
-import { auditLog, complaints, type AuditLogRow, type ComplaintRow, type NewComplaintRow } from "./schema";
+import { auditLog, complaints, orgs, type AuditLogRow, type ComplaintRow, type NewComplaintRow } from "./schema";
 
 /** Inserts a complaint and returns the stored row (with generated id and timestamps). */
 export async function insertComplaint(values: NewComplaintRow): Promise<ComplaintRow> {
@@ -21,6 +21,19 @@ export async function getComplaint(id: string): Promise<ComplaintRow | null> {
   return row ?? null;
 }
 
+/**
+ * Orgs that may handle a complaint at `location`: those whose boundary covers the point (ST_Covers)
+ * plus boundary-less orgs such as the city. Most specific first, so a campus pin defaults to campus.
+ */
+export async function findEligibleOrgs(location: LngLat): Promise<Org[]> {
+  const point = sql`${toEwkt(location)}::geography`;
+  return db
+    .select({ id: orgs.id, slug: orgs.slug, name: orgs.name, kind: orgs.kind })
+    .from(orgs)
+    .where(or(isNull(orgs.boundary), sql`ST_Covers(${orgs.boundary}, ${point})`))
+    .orderBy(sql`${orgs.boundary} IS NULL`, asc(orgs.id));
+}
+
 export type NearbyComplaint = {
   id: string;
   createdAt: Date;
@@ -30,12 +43,13 @@ export type NearbyComplaint = {
 };
 
 /**
- * Complaints within `radiusM` metres of `location` created in the last `days` days, oldest first.
+ * Complaints in the same org within `radiusM` metres of `location` created in the last `days` days, oldest first.
  * Uses ST_DWithin on geography (metres, GIST-indexed). With an embedding, also returns cosine
  * similarity (1 − pgvector `<=>` distance) so dedup can threshold it; rows without embeddings get null.
  */
 export async function findNearby(opts: {
   location: LngLat;
+  orgId: number;
   radiusM: number;
   days: number;
   embedding?: number[] | null;
@@ -56,6 +70,7 @@ export async function findNearby(opts: {
     .from(complaints)
     .where(
       and(
+        eq(complaints.orgId, opts.orgId),
         sql`ST_DWithin(${complaints.location}, ${point}, ${opts.radiusM})`,
         gte(complaints.createdAt, sql`now() - make_interval(days => ${opts.days})`),
         opts.excludeId ? ne(complaints.id, opts.excludeId) : undefined,

@@ -27,12 +27,12 @@ export const FALLBACK_CLASSIFICATION: Classification = {
   usedFallback: true,
 };
 
-const SYSTEM_PROMPT = `You triage infrastructure complaints for the MANIT Bhopal campus maintenance team.
+const SYSTEM_PROMPT = `You triage civic infrastructure complaints (city streets and campuses in Bhopal) for the responsible maintenance team.
 Classify the complaint into exactly one category: ${CATEGORIES.join(", ")}.
 Rate each on 1–5:
 - severity: how bad the physical problem is (1 cosmetic, 5 critical failure)
 - safetyRisk: likelihood of injury or harm (1 none, 5 immediate danger e.g. exposed live wires, deep open pit)
-- communityImpact: how many people are affected (1 one person, 5 a whole hostel/department/road)
+- communityImpact: how many people are affected (1 one person, 5 a whole neighbourhood, hostel or main road)
 confidence: 0–1, how sure you are of the category.
 reasoning: one sentence under 25 words citing the concrete evidence from the text and/or photo.
 If a photo is attached, trust what it shows over vague text.`;
