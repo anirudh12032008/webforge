@@ -25,8 +25,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Triage</h1>
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-foreground pb-5">
+        <div>
+          <h1 className="text-3xl font-semibold sm:text-4xl">Triage</h1>
+          <p className="mt-1 max-w-xl text-muted-foreground">Open complaints across campus and city, ranked by AI priority. Open any row to review, assign or override.</p>
+        </div>
         <OrgTabs basePath="/dashboard" current={query.org} />
       </header>
 
