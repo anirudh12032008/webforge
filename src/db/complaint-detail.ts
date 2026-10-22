@@ -1,5 +1,5 @@
 import { asc, desc, eq, inArray } from "drizzle-orm";
-import { DEDUP_RADIUS_M, DUPLICATE_THRESHOLD, RELATED_THRESHOLD } from "@/lib/ai/dedup";
+import { DEDUP_RADIUS_M, RELATED_THRESHOLD } from "@/lib/ai/dedup";
 import type { AuditEntry, Complaint, Department, Org, Status } from "@/types";
 import { db } from "./client";
 import { findNearby, getComplaint, toApiAudit, toApiComplaint } from "./queries";
@@ -45,7 +45,7 @@ export async function getComplaintDetail(id: string): Promise<ComplaintDetail | 
 
   const relatedScores = new Map(
     nearby
-      .filter((n) => n.similarity !== null && n.similarity >= RELATED_THRESHOLD && n.similarity <= DUPLICATE_THRESHOLD && n.duplicateOf !== id)
+      .filter((n) => n.similarity !== null && n.similarity >= RELATED_THRESHOLD && n.duplicateOf === null)
       .map((n) => [n.id, n.similarity ?? 0]),
   );
   const relatedRows = relatedScores.size
